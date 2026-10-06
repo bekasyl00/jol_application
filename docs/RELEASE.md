@@ -11,7 +11,7 @@ xcodebuild -resolvePackageDependencies -project JolParcel.xcodeproj -scheme JolP
 xcodebuild -project JolParcel.xcodeproj -scheme JolParcel -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-Команды ещё не выполнены успешно: Xcode появился во время работы, но ещё требует принятия лицензии и завершения первого запуска владельцем компьютера. SwiftUI и Firebase SDK не прошли typecheck с iOS SDK, симулятор и физический iPhone не тестировались. Синтаксис Swift, ядро, plist и серверные правила проверены отдельно; это не замена проверке iOS-сборки.
+Полноценная unsigned iOS simulator build прошла в GitHub Actions на macOS 26; SwiftUI и Firebase SDK проверены компилятором. После настройки локального Xcode 26.6 также прошли 2 XCTest-теста. Запуск интерфейса в симуляторе, физический iPhone, APNs/FCM и реальное облачное развёртывание ещё требуют проверки. Успешная сборка не заменяет проверку пользовательских сценариев.
 
 Сценарии TestFlight:
 
