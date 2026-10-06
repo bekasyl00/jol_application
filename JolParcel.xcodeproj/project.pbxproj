@@ -1,0 +1,315 @@
+// !$*UTF8*$!
+{
+	archiveVersion = "1";
+	classes = {
+	};
+	objectVersion = "56";
+	objects = {
+		CB1C9C3D00B0A12C2C67162F = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/JolParcelApp.swift";
+			sourceTree = "<group>";
+		};
+		9B262C2C5E4E227EAD8AD3E7 = {
+			isa = "PBXBuildFile";
+			fileRef = "CB1C9C3D00B0A12C2C67162F";
+		};
+		EFB734D178228413A9242BCD = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Services/AppStore.swift";
+			sourceTree = "<group>";
+		};
+		24DFCDB94C20D1EC6CF2DC34 = {
+			isa = "PBXBuildFile";
+			fileRef = "EFB734D178228413A9242BCD";
+		};
+		0EEBF10DA7B64A39D66DD651 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Views/CreateDeliveryView.swift";
+			sourceTree = "<group>";
+		};
+		C95EDC0151DB794FAC0C7C1C = {
+			isa = "PBXBuildFile";
+			fileRef = "0EEBF10DA7B64A39D66DD651";
+		};
+		79CBD39ABAD312607E46048A = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Views/OrdersView.swift";
+			sourceTree = "<group>";
+		};
+		B83A4A1F6D748C7244F64F08 = {
+			isa = "PBXBuildFile";
+			fileRef = "79CBD39ABAD312607E46048A";
+		};
+		4C2049D4081EAEE59248C48E = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Views/RootView.swift";
+			sourceTree = "<group>";
+		};
+		07166ECB5AFC4450610A2790 = {
+			isa = "PBXBuildFile";
+			fileRef = "4C2049D4081EAEE59248C48E";
+		};
+		1EDC437F0340A5B290481599 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Sources/ParcelCore/LocalRepository.swift";
+			sourceTree = "<group>";
+		};
+		B84354A0872F44711DF19027 = {
+			isa = "PBXBuildFile";
+			fileRef = "1EDC437F0340A5B290481599";
+		};
+		80B2DD300CF0E69100E9E9FD = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Sources/ParcelCore/Models.swift";
+			sourceTree = "<group>";
+		};
+		86EAF61E24A6C3D2A6DAEC00 = {
+			isa = "PBXBuildFile";
+			fileRef = "80B2DD300CF0E69100E9E9FD";
+		};
+		424DD89AC8A76830122E2469 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "folder.assetcatalog";
+			path = "App/Resources/Assets.xcassets";
+			sourceTree = "<group>";
+		};
+		C9BAD785196607A203C80396 = {
+			isa = "PBXBuildFile";
+			fileRef = "424DD89AC8A76830122E2469";
+		};
+		6CEB468D8795D500F75EC88F = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "text.xml";
+			path = "App/Resources/PrivacyInfo.xcprivacy";
+			sourceTree = "<group>";
+		};
+		A1FE59B8CD7198E92E4EE5AC = {
+			isa = "PBXBuildFile";
+			fileRef = "6CEB468D8795D500F75EC88F";
+		};
+		38A007151ABE87CC01A5B6E9 = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.application";
+			path = "JolParcel.app";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		FBDC4F23F93125BBEEAE800C = {
+			isa = "PBXGroup";
+			children = ("38A007151ABE87CC01A5B6E9");
+			name = "Products";
+			sourceTree = "<group>";
+		};
+		BCE16DD0260827ECF338C787 = {
+			isa = "PBXGroup";
+			children = ("CB1C9C3D00B0A12C2C67162F", "EFB734D178228413A9242BCD", "0EEBF10DA7B64A39D66DD651", "79CBD39ABAD312607E46048A", "4C2049D4081EAEE59248C48E", "1EDC437F0340A5B290481599", "80B2DD300CF0E69100E9E9FD");
+			name = "Sources";
+			sourceTree = "<group>";
+		};
+		0189424A5A60FED329FA868E = {
+			isa = "PBXGroup";
+			children = ("424DD89AC8A76830122E2469", "6CEB468D8795D500F75EC88F");
+			name = "Resources";
+			sourceTree = "<group>";
+		};
+		B28B7AF69320201D1CF206EB = {
+			isa = "PBXGroup";
+			children = ("BCE16DD0260827ECF338C787", "0189424A5A60FED329FA868E", "FBDC4F23F93125BBEEAE800C");
+			sourceTree = "<group>";
+		};
+		931C7BC76DE58DB8A91AB747 = {
+			isa = "XCRemoteSwiftPackageReference";
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = "upToNextMajorVersion";
+				minimumVersion = "12.0.0";
+			};
+		};
+		91809198669C7C30B2324195 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseAuth";
+		};
+		E714EA6B584B14C3FE3913F9 = {
+			isa = "PBXBuildFile";
+			productRef = "91809198669C7C30B2324195";
+		};
+		5AA8803EDD2A639D2FA049DB = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseFirestore";
+		};
+		A53C186C2761EFD083FAAA1D = {
+			isa = "PBXBuildFile";
+			productRef = "5AA8803EDD2A639D2FA049DB";
+		};
+		821945B34B6EEEACD0C17194 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseStorage";
+		};
+		448C0755F074576CC566CB3B = {
+			isa = "PBXBuildFile";
+			productRef = "821945B34B6EEEACD0C17194";
+		};
+		8D017C9BED304F1AF8E668EE = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseFunctions";
+		};
+		74E59D9A04924B05B74675F3 = {
+			isa = "PBXBuildFile";
+			productRef = "8D017C9BED304F1AF8E668EE";
+		};
+		F680D677047D50AFD8929EC6 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseMessaging";
+		};
+		38BBA18B4FF95473312A6CF7 = {
+			isa = "PBXBuildFile";
+			productRef = "F680D677047D50AFD8929EC6";
+		};
+		FBB4DF52F610C71DAA962ADB = {
+			isa = "XCSwiftPackageProductDependency";
+			package = "931C7BC76DE58DB8A91AB747";
+			productName = "FirebaseAppCheck";
+		};
+		250F806E30DBEB7859705146 = {
+			isa = "PBXBuildFile";
+			productRef = "FBB4DF52F610C71DAA962ADB";
+		};
+		A1C3CEACCD4F322048E69D2D = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = "2147483647";
+			files = ("9B262C2C5E4E227EAD8AD3E7", "24DFCDB94C20D1EC6CF2DC34", "C95EDC0151DB794FAC0C7C1C", "B83A4A1F6D748C7244F64F08", "07166ECB5AFC4450610A2790", "B84354A0872F44711DF19027", "86EAF61E24A6C3D2A6DAEC00");
+			runOnlyForDeploymentPostprocessing = "0";
+		};
+		326A678791C89F5FAABDFBFA = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = "2147483647";
+			files = ("E714EA6B584B14C3FE3913F9", "A53C186C2761EFD083FAAA1D", "448C0755F074576CC566CB3B", "74E59D9A04924B05B74675F3", "38BBA18B4FF95473312A6CF7", "250F806E30DBEB7859705146");
+			runOnlyForDeploymentPostprocessing = "0";
+		};
+		FF4A15EEA61D4A3B097C1C27 = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = "2147483647";
+			files = ("C9BAD785196607A203C80396", "A1FE59B8CD7198E92E4EE5AC");
+			runOnlyForDeploymentPostprocessing = "0";
+		};
+		AA60E62D3E7BAEF305ADABEA = {
+			isa = "XCBuildConfiguration";
+			name = "Debug";
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = "17.0";
+				SDKROOT = "iphoneos";
+				SWIFT_VERSION = "5.0";
+				CLANG_ENABLE_MODULES = "YES";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
+			};
+		};
+		89679AD72EB8C11CFB977C17 = {
+			isa = "XCBuildConfiguration";
+			name = "Debug";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "kz.jol.parcel";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "NO";
+				INFOPLIST_FILE = "App/Resources/Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "App/Resources/JolParcel.entitlements";
+				CODE_SIGN_STYLE = "Automatic";
+				TARGETED_DEVICE_FAMILY = "1";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				SUPPORTS_MACCATALYST = "NO";
+				APS_ENVIRONMENT = "development";
+				APP_ATTEST_ENVIRONMENT = "development";
+			};
+		};
+		3D553B551D2688E2E7A15153 = {
+			isa = "XCBuildConfiguration";
+			name = "Release";
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = "17.0";
+				SDKROOT = "iphoneos";
+				SWIFT_VERSION = "5.0";
+				CLANG_ENABLE_MODULES = "YES";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+			};
+		};
+		DB94307ECB9D84D73F3251E3 = {
+			isa = "XCBuildConfiguration";
+			name = "Release";
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = "kz.jol.parcel";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				GENERATE_INFOPLIST_FILE = "NO";
+				INFOPLIST_FILE = "App/Resources/Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "App/Resources/JolParcel.entitlements";
+				CODE_SIGN_STYLE = "Automatic";
+				TARGETED_DEVICE_FAMILY = "1";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				SUPPORTS_MACCATALYST = "NO";
+				APS_ENVIRONMENT = "production";
+				APP_ATTEST_ENVIRONMENT = "production";
+			};
+		};
+		640DC9EFD529235A8D9E2727 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = ("AA60E62D3E7BAEF305ADABEA", "3D553B551D2688E2E7A15153");
+			defaultConfigurationIsVisible = "0";
+			defaultConfigurationName = "Release";
+		};
+		976B52545947CA66FD9EF2A4 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = ("89679AD72EB8C11CFB977C17", "DB94307ECB9D84D73F3251E3");
+			defaultConfigurationIsVisible = "0";
+			defaultConfigurationName = "Release";
+		};
+		0E8A3AD980EC179856012B7E = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = "976B52545947CA66FD9EF2A4";
+			buildPhases = ("A1C3CEACCD4F322048E69D2D", "326A678791C89F5FAABDFBFA", "FF4A15EEA61D4A3B097C1C27");
+			buildRules = ();
+			dependencies = ();
+			name = "JolParcel";
+			packageProductDependencies = ("91809198669C7C30B2324195", "5AA8803EDD2A639D2FA049DB", "821945B34B6EEEACD0C17194", "8D017C9BED304F1AF8E668EE", "F680D677047D50AFD8929EC6", "FBB4DF52F610C71DAA962ADB");
+			productName = "JolParcel";
+			productReference = "38A007151ABE87CC01A5B6E9";
+			productType = "com.apple.product-type.application";
+		};
+		98F54143AB4E86B28C3AFEE0 = {
+			isa = "PBXProject";
+			attributes = {
+				LastUpgradeCheck = "2600";
+				TargetAttributes = {
+					0E8A3AD980EC179856012B7E = {
+						CreatedOnToolsVersion = "26.0";
+					};
+				};
+			};
+			buildConfigurationList = "640DC9EFD529235A8D9E2727";
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "ru";
+			hasScannedForEncodings = "0";
+			knownRegions = ("ru", "Base");
+			mainGroup = "B28B7AF69320201D1CF206EB";
+			packageReferences = ("931C7BC76DE58DB8A91AB747");
+			productRefGroup = "FBDC4F23F93125BBEEAE800C";
+			projectDirPath = "";
+			projectRoot = "";
+			targets = ("0E8A3AD980EC179856012B7E");
+		};
+	};
+	rootObject = "98F54143AB4E86B28C3AFEE0";
+}

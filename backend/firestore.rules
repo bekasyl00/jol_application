@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function active() { return signedIn() && exists(userPath()) && get(userPath()).data.get('deleting', false) == false; }
+    function courier() { return active() && get(userPath()).data.role == 'courier'; }
+    function participant(d) { return active() && (d.senderId == request.auth.uid || d.driverId == request.auth.uid); }
+    function validProfile(d, uid) {
+      return d.keys().hasAll(['id', 'name', 'phone', 'role', 'vehicle', 'capacityKg'])
+        && d.keys().hasOnly(['id', 'name', 'phone', 'role', 'vehicle', 'capacityKg'])
+        && d.id == uid && d.name is string && d.name.size() >= 2 && d.name.size() <= 80
+        && d.phone is string && d.phone.matches('^\\+7[0-9]{10}$')
+        && d.role in ['sender', 'courier'] && d.vehicle is string && d.vehicle.size() <= 100
+        && d.capacityKg is number && d.capacityKg >= 0 && d.capacityKg <= 5000
+        && (d.role == 'sender' || (d.vehicle.size() > 0 && d.capacityKg > 0));
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && validProfile(request.resource.data, uid);
+      allow update, delete: if false;
+      match /tokens/{tokenId} {
+        allow read, delete: if active() && request.auth.uid == uid;
+        allow create, update: if active() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['token', 'updatedAt'])
+          && request.resource.data.token is string && request.resource.data.token == tokenId
+          && tokenId.size() <= 4096 && request.resource.data.updatedAt == request.time;
+      }
+    }
+    match /deliveries/{id} {
+      allow read: if participant(resource.data) || (courier() && resource.data.status == 'waiting');
+      allow write: if false; // All mutations use authenticated, App Check protected callables.
+      match /private/{doc} {
+        allow read: if participant(get(/databases/$(database)/documents/deliveries/$(id)).data);
+        allow write: if false;
+      }
+      match /messages/{message} {
+        allow read: if participant(get(/databases/$(database)/documents/deliveries/$(id)).data);
+        allow write: if false;
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
