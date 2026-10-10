@@ -17,3 +17,4 @@ DerivedData/
 *service-account*.json
 *serviceAccount*.json
 credentials*.json
+.swiftpm/
