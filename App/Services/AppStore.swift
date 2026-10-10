@@ -8,6 +8,7 @@ import FirebaseFunctions
 import FirebaseStorage
 import FirebaseMessaging
 import UserNotifications
+import OSLog
 
 @MainActor @Observable final class AppStore {
     var profile: Profile?
@@ -17,17 +18,14 @@ import UserNotifications
     var demo = false
     var authReady = false
     var deletionPending = false
-    var local: LocalRepository?
+    private var local: LocalRepository?
+    private static let storageLog = Logger(subsystem: "kz.jol.parcel", category: "DemoStorage")
     private var listeners: [ListenerRegistration] = []
     private var groups: [String: [Delivery]] = [:]
     private var authHandle: AuthStateDidChangeListenerHandle?
     var isConfigured: Bool { FirebaseApp.app() != nil }
     var backend: Functions { Functions.functions(region: "europe-west1") }
     init() {
-        do {
-            let dir = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("JolParcel")
-            local = try LocalRepository(directory: dir)
-        } catch { self.error = "Не удалось открыть локальное хранилище." }
         if isConfigured {
             authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
                 Task { @MainActor in
@@ -55,11 +53,24 @@ import UserNotifications
         guard !busy else { return }; busy = true; defer { busy = false }
         do { try await work() } catch { self.error = error.localizedDescription }
     }
+    private func openDemoStorage() throws -> LocalRepository {
+        if let local { return local }
+        do {
+            let dir = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("JolParcel", isDirectory: true)
+            let repository = try LocalRepository(directory: dir)
+            local = repository
+            return repository
+        } catch {
+            let failure = error as NSError
+            Self.storageLog.error("Demo storage open failed: \(failure.domain, privacy: .public) code=\(failure.code)")
+            throw ParcelError.invalid("Не удалось открыть демоданные. Проверьте свободное место и повторите попытку. Существующие данные сохранены.")
+        }
+    }
     func enterDemo(role: Role) async throws {
-        demo = true; stopListeners()
+        let local = try openDemoStorage()
         let p = Profile(id: role == .sender ? "demo-sender" : "demo-courier", name: role == .sender ? "Алия" : "Арман", phone: role == .sender ? "+77010000001" : "+77010000002", role: role, vehicle: role == .courier ? "Toyota Camry" : "", capacityKg: role == .courier ? 50 : 0)
-        guard let local else { throw ParcelError.invalid("Локальное хранилище недоступно.") }
-        try await local.saveProfile(p); profile = p; await refresh()
+        try await local.saveProfile(p)
+        demo = true; stopListeners(); profile = p; await refresh()
     }
     func login(email: String, password: String) async throws {
         demo = false; _ = try await Auth.auth().signIn(withEmail: email, password: password)
