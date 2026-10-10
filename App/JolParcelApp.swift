@@ -7,6 +7,7 @@ import UserNotifications
 
 final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if !JOL_DEMO_ONLY
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             #if DEBUG
             AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
             FirebaseApp.configure(); Messaging.messaging().delegate = self
             UNUserNotificationCenter.current().delegate = self
         }
+        #endif
         return true
     }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) { Messaging.messaging().apnsToken = deviceToken }

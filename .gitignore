@@ -18,3 +18,4 @@ DerivedData/
 *serviceAccount*.json
 credentials*.json
 .swiftpm/
+App/Resources/LocalSigning.xcconfig

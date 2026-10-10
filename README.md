@@ -7,7 +7,7 @@
 Если это ваш первый iOS-проект, начните с [пошаговой памятки](docs/START_HERE.md).
 
 1. Установите полноценный Xcode 26 или новее. На текущем компьютере установлены Swift 6.3 и Xcode 26.6; первый запуск Xcode выполнен. Полноценная unsigned iOS-сборка успешно проверена в GitHub Actions. На 10 октября 2026 года на этом компьютере также установлен iOS 26.5 Simulator; приложение можно запускать на iPhone 17 Pro. Debug-сборка использует активную архитектуру симулятора, Release — все поддерживаемые архитектуры.
-2. Откройте `JolParcel.xcodeproj`, выберите схему `JolParcel` и iPhone Simulator. Пакеты Firebase загрузятся через Swift Package Manager.
+2. Для своего iPhone с бесплатной Personal Team используйте схему `JolParcelDemo` (только локальное демо, без Firebase, Push и App Attest); команда подписи задаётся локально в `App/Resources/LocalSigning.xcconfig`. Для обычного запуска откройте `JolParcel.xcodeproj`, выберите схему `JolParcel` и iPhone Simulator. Пакеты Firebase загрузятся через Swift Package Manager.
 3. Для устройства задайте свою Apple Development Team в Signing & Capabilities и уникальный Bundle ID.
 4. Без `GoogleService-Info.plist` работает локальный деморежим: выберите отправителя, создайте заказ, в профиле смените демороль на перевозчика, примите и завершите доставку. После возврата к отправителю можно оставить отзыв.
 5. Для демозаказа можно ввести расстояние вручную, если MapKit не возвращает автомобильный маршрут. Фото и push требуют Firebase.

@@ -23,7 +23,13 @@ import OSLog
     private var listeners: [ListenerRegistration] = []
     private var groups: [String: [Delivery]] = [:]
     private var authHandle: AuthStateDidChangeListenerHandle?
-    var isConfigured: Bool { FirebaseApp.app() != nil }
+    var isConfigured: Bool {
+        #if JOL_DEMO_ONLY
+        false
+        #else
+        FirebaseApp.app() != nil
+        #endif
+    }
     var backend: Functions { Functions.functions(region: "europe-west1") }
     init() {
         if isConfigured {
