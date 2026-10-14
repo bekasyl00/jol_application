@@ -39,6 +39,8 @@ extension SelectedPlace {
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to.coordinate))
         request.transportType = .automobile; request.departureDate = departure
         let pending = MKDirections(request: request); directions = pending
+        let timeout = Task { try await Task.sleep(for: .seconds(25)); pending.cancel() }
+        defer { timeout.cancel() }
         defer { if ticket == generation { calculating = false; directions = nil } }
         do {
             let response = try await withTaskCancellationHandler {
@@ -56,7 +58,7 @@ extension SelectedPlace {
     }
 }
 
-@MainActor @Observable final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
+@MainActor @Observable final class LocationSearchService: NSObject, @preconcurrency MKLocalSearchCompleterDelegate {
     var results: [MKLocalSearchCompletion] = []
     var searching = false
     var message: String?
@@ -88,7 +90,7 @@ extension SelectedPlace {
     func cancel() { completer?.cancel(); completer = nil; search?.cancel(); search = nil; searching = false; results = [] }
 }
 
-@MainActor @Observable final class LocationService: NSObject, CLLocationManagerDelegate {
+@MainActor @Observable final class LocationService: NSObject, @preconcurrency CLLocationManagerDelegate {
     var point: GeoPoint?
     var message: String?
     var requesting = false

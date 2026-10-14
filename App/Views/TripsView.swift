@@ -193,6 +193,7 @@ struct TripDetailView: View {
     func estimate(_ trip: CarrierTrip, _ order: Delivery) async {
         do {
             guard let d = try await store.details(order.id), let p = d.pickupPlace, let q = d.dropoffPlace else { throw ParcelError.invalid("В заказе нет подтверждённых точек.") }
+            guard orderId == order.id else { return }
             await match.evaluate(origin: trip.originArea, destination: trip.destinationArea, stops: [], pickup: p.coordinate, dropoff: q.coordinate, departure: trip.departureAt)
         } catch { store.error = error.localizedDescription }
     }
@@ -229,7 +230,7 @@ struct ProposalReviewView: View {
                 Button("Проверить объезд со всеми остановками") { Task { await estimate() } }.disabled(match.calculating)
                 MatchResultView(match: match, trip: trip, approximate: true)
                 HStack {
-                    Button("Принять") { confirming = true }.buttonStyle(.borderedProminent)
+                    Button("Принять") { confirming = true }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent)
                     Button("Отклонить") { Task { await store.perform { try await store.respond(proposal, action: .rejected, version: nil) } } }
                 }.disabled(store.busy || match.calculating)
             }
@@ -247,6 +248,7 @@ struct ProposalReviewView: View {
                 guard let d = try await store.details(id), let a = d.pickupPlace, let b = d.dropoffPlace else { throw ParcelError.invalid("Не у всех принятых посылок есть точки. Уточните маршрут вручную.") }
                 stops += [a.coordinate, b.coordinate]
             }
+            guard store.trips.first(where: { $0.id == trip.id })?.version == trip.version else { return }
             await match.evaluate(origin: details.origin.coordinate, destination: details.destination.coordinate, stops: stops, pickup: p, dropoff: q, departure: trip.departureAt)
         } catch { match.message = error.localizedDescription }
     }

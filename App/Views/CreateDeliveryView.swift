@@ -4,6 +4,7 @@ import MapKit
 
 struct CreateDeliveryView: View {
     @Environment(AppStore.self) private var store
+    @State private var draftID = UUID().uuidString
     @State private var from = "Алматы"
     @State private var to = "Астана"
     @State private var pickupPlace: SelectedPlace?
@@ -74,11 +75,12 @@ struct CreateDeliveryView: View {
                 Section("04 / Стоимость") {
                     HStack { Text("Предложение, ₸").font(.headline); Spacer(); TextField("Рассчитайте маршрут", text: $price).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
                     Text("Можно изменить цену. Тариф: 1 000 ₸ + 8 ₸/км + 5 000 ₸/м³. Оплата перевозчику по договорённости.").font(.caption).foregroundStyle(.secondary)
-                    Button("Опубликовать отправление") { Task { await store.perform { try await submit() } } }.buttonStyle(.borderedProminent).controlSize(.large).disabled(store.busy || pickupPlace == nil || dropoffPlace == nil || routing.calculating)
+                    Button("Опубликовать отправление") { Task { await store.perform { try await submit() } } }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent).controlSize(.large).disabled(store.busy || pickupPlace == nil || dropoffPlace == nil || routing.calculating)
                 }
             }.navigationTitle("Отправить посылку")
             .onChange(of: from) { pickupPlace = nil }
             .onChange(of: to) { dropoffPlace = nil }
+            .onChange(of: routeKey) { routing.reset(); distance = nil; demoDistance = false; price = "" }
             .task(id: routeKey) { await calculate() }
             .onChange(of: selectedPhoto) {
                 Task {
@@ -103,12 +105,13 @@ struct CreateDeliveryView: View {
     }
     func submit() async throws {
         guard let p = store.profile, let pickupPlace, let dropoffPlace else { throw ParcelError.invalid("Подтвердите обе точки на карте.") }
-        var d = Delivery(senderId: p.id, fromCity: from, toCity: to, itemDescription: description, size: size, weight: Double(weight.replacingOccurrences(of: ",", with: ".")) ?? 0, volume: Double(volume.replacingOccurrences(of: ",", with: ".")) ?? 0, distanceKm: distance ?? 0, price: Int(price) ?? 0, pickupAt: pickup)
+        var d = Delivery(id: draftID, senderId: p.id, fromCity: from, toCity: to, itemDescription: description, size: size, weight: Double(weight.replacingOccurrences(of: ",", with: ".")) ?? 0, volume: Double(volume.replacingOccurrences(of: ",", with: ".")) ?? 0, distanceKm: distance ?? 0, price: Int(price) ?? 0, pickupAt: pickup)
         d.pickupArea = pickupPlace.coordinate.area; d.dropoffArea = dropoffPlace.coordinate.area
         d.distanceSource = demoDistance ? "manualDemo" : (routing.route == nil ? "unavailable" : "appleMapKit")
         let summary = routing.route.map { RouteSummary(distanceMeters: $0.distance, durationSeconds: $0.expectedTravelTime) }
         let details = DeliveryDetails(addressFrom: pickupPlace.label, addressTo: dropoffPlace.label, recipientName: recipient, recipientPhone: phone, comment: comment, pickupPlace: pickupPlace, dropoffPlace: dropoffPlace, route: summary)
         try await store.create(d, details: details, photo: photo)
+        draftID = UUID().uuidString
         description = ""; comment = ""; selectedPhoto = nil; photo = nil; success = true
     }
 }

@@ -1,2 +1,4 @@
 // Optional machine-local development signing. Never commit LocalSigning.xcconfig.
+// Set JOL_AUTH_CALLBACK_SCHEME to the Firebase Encoded App ID in the local file.
+JOL_AUTH_CALLBACK_SCHEME = jol-auth-unconfigured
 #include? "LocalSigning.xcconfig"

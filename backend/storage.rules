@@ -1,21 +1,8 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function active() {
-      return request.auth != null
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('deleting', false) == false;
-    }
-    match /parcels/{uid}/{orderId}/photo.jpg {
-      function order() { return firestore.get(/databases/(default)/documents/deliveries/$(orderId)).data; }
-      function existsOrder() { return firestore.exists(/databases/(default)/documents/deliveries/$(orderId)); }
-      allow read: if active() && (request.auth.uid == uid || (existsOrder() && (order().driverId == request.auth.uid || (order().status == 'waiting' && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'courier'))));
-      allow create: if active() && request.auth.uid == uid
-        && firestore.get(/databases/(default)/documents/users/$(uid)).data.role == 'sender'
-        && !existsOrder() && request.resource.size <= 5 * 1024 * 1024 && request.resource.contentType == 'image/jpeg';
-      allow delete: if active() && request.auth.uid == uid && !existsOrder();
-      allow update: if false;
-    }
+    // All image transfers use session-checked Functions. Storage rules permit only
+    // two Firestore document lookups, insufficient for session, version and order ACLs.
     match /{path=**} { allow read, write: if false; }
   }
 }

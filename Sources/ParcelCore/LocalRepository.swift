@@ -30,6 +30,9 @@ public actor LocalRepository {
     public func create(_ d: Delivery, details: DeliveryDetails, user: Profile) throws {
         guard user.role == .sender, d.senderId == user.id, d.status == .waiting else { throw ParcelError.forbidden }
         try Validation.order(d, details: details)
+        if let existing = state.deliveries.first(where: { $0.id == d.id }) {
+            guard existing.senderId == user.id else { throw ParcelError.forbidden }; return
+        }
         var copy = state; copy.deliveries.append(d); copy.details[d.id] = details; try commit(copy)
     }
     public func accept(_ id: String, user: Profile) throws {

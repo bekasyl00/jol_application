@@ -11,12 +11,14 @@ import UserNotifications
 import OSLog
 
 @MainActor @Observable final class AppStore {
+    let tracking = DeliveryTrackingService()
     var profile: Profile?
     var orders: [Delivery] = []
     var error: String?
     var busy = false
     var demo = false
     var authReady = false
+    var authLoadGeneration = UUID()
     var deletionPending = false
     var local: LocalRepository?
     var trips: [CarrierTrip] = []
@@ -38,25 +40,8 @@ import OSLog
     var backend: Functions { Functions.functions(region: "europe-west1") }
     init() {
         if isConfigured {
-            authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-                Task { @MainActor in
-                    guard let self, !self.demo else { return }
-                    if let user {
-                        do {
-                            let doc = try await Firestore.firestore().collection("users").document(user.uid).getDocument()
-                            if doc.data()?["deleting"] as? Bool == true {
-                                self.deletionPending = true
-                                self.profile = Profile(id: user.uid, name: "Удаление аккаунта", phone: "", role: .sender)
-                                self.error = "Удаление было начато. Повторите его в профиле, подтвердив пароль."
-                            } else if doc.exists {
-                                self.deletionPending = false
-                                self.profile = try doc.data(as: Profile.self)
-                            } else if self.profile?.id != user.uid { self.profile = nil }
-                            if self.profile != nil && !self.deletionPending { self.listen(); await self.syncToken() }
-                        } catch { self.error = "Не удалось загрузить профиль." }
-                    } else { self.stopListeners(); self.profile = nil; self.orders = [] }
-                    self.authReady = true
-                }
+            authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, _ in
+                Task { @MainActor in await self?.loadAuthenticatedUser() }
             }
         } else { authReady = true }
     }
@@ -81,23 +66,20 @@ import OSLog
         let local = try openDemoStorage()
         let p = Profile(id: role == .sender ? "demo-sender" : "demo-courier", name: role == .sender ? "Алия" : "Арман", phone: role == .sender ? "+77010000001" : "+77010000002", role: role, vehicle: role == .courier ? "Toyota Camry" : "", capacityKg: role == .courier ? 50 : 0)
         try await local.saveProfile(p)
+        if isConfigured, Auth.auth().currentUser != nil { try await logout() }
         demo = true; stopListeners(); profile = p; await refresh()
     }
-    func login(email: String, password: String) async throws {
-        demo = false; _ = try await Auth.auth().signIn(withEmail: email, password: password)
-    }
-    func register(email: String, password: String, name: String, phone: String, role: Role, vehicle: String, capacity: Double) async throws {
-        let p = Profile(id: "new", name: name, phone: phone, role: role, vehicle: vehicle, capacityKg: capacity)
-        try Validation.profile(p)
-        guard password.count >= 8 else { throw ParcelError.invalid("Пароль должен содержать минимум 8 символов.") }
-        demo = false
-        // Retry profile creation for an existing incomplete registration.
-        let user: FirebaseAuth.User
-        if let current = Auth.auth().currentUser { user = current }
-        else { user = try await Auth.auth().createUser(withEmail: email, password: password).user }
-        var saved = p; saved.id = user.uid
-        try Firestore.firestore().collection("users").document(user.uid).setData(from: saved)
-        profile = saved; listen(); await syncToken()
+    func loadFullProfile(uid: String, generation: UUID) async throws {
+        let doc = try await Firestore.firestore().collection("users").document(uid).getDocument(source: .server)
+        guard !demo, authLoadGeneration == generation, Auth.auth().currentUser?.uid == uid else { return }
+        if doc.data()?["deleting"] as? Bool == true {
+            deletionPending = true
+            profile = Profile(id: uid, name: "Удаление аккаунта", phone: "", role: .sender)
+            error = "Удаление было начато. Повторите его в профиле."
+        } else {
+            profile = try doc.data(as: Profile.self); deletionPending = false
+            listen(); await syncToken()
+        }
     }
     func stopListeners() { listeners.forEach { $0.remove() }; listeners = []; groups = [:]; tripListeners.forEach { $0.remove() }; tripListeners = []; trips = []; proposals = []; catalogCursor = nil }
     func listen() {
@@ -116,6 +98,7 @@ import OSLog
                         var unique: [String: Delivery] = [:]
                         for item in self.groups.values.flatMap({ $0 }) { unique[item.id] = item }
                         self.orders = unique.values.sorted { $0.createdAt > $1.createdAt }
+                        self.tracking.reconcile(orders: self.orders, uid: p.id)
                     } catch { self.error = "Получен заказ в неподдерживаемом формате." }
                 }
             })
@@ -138,9 +121,8 @@ import OSLog
         }
         if let photo {
             guard photo.count <= 5 * 1024 * 1024 else { throw ParcelError.invalid("Фото должно быть не больше 5 МБ.") }
-            let path = "parcels/\(p.id)/\(d.id)/photo.jpg"
-            let meta = StorageMetadata(); meta.contentType = "image/jpeg"
-            _ = try await Storage.storage().reference(withPath: path).putDataAsync(photo, metadata: meta); order.photoPath = path
+            guard let result = try await call("uploadParcelPhoto", data: ["id": d.id, "base64": photo.base64EncodedString()]) as? [String: Any], let path = result["path"] as? String else { throw ParcelError.invalid("Не удалось загрузить фото.") }
+            order.photoPath = path
         }
         var payload: [String: Any] = ["id": order.id, "fromCity": order.fromCity, "toCity": order.toCity, "itemDescription": order.itemDescription, "size": order.size.rawValue, "weight": order.weight, "volume": order.volume, "distanceKm": order.distanceKm, "price": order.price, "pickupAt": order.pickupAt.timeIntervalSince1970 * 1000, "addressFrom": details.addressFrom, "addressTo": details.addressTo, "recipientName": details.recipientName, "recipientPhone": details.recipientPhone, "comment": details.comment]
         if let path = order.photoPath { payload["photoPath"] = path }
@@ -148,8 +130,7 @@ import OSLog
         if let place = details.dropoffPlace { payload["dropoffPlace"] = place.payload }
         if let source = order.distanceSource { payload["distanceSource"] = source }
         if let route = details.route { payload["route"] = ["distanceMeters": route.distanceMeters, "durationSeconds": route.durationSeconds, "calculatedAt": route.calculatedAt.timeIntervalSince1970 * 1000] }
-        do { _ = try await call("createDelivery", data: payload) }
-        catch { if let path = order.photoPath { try? await Storage.storage().reference(withPath: path).delete() }; throw error }
+        _ = try await call("createDelivery", data: payload)
     }
     func accept(_ d: Delivery) async throws {
         guard let p = profile else { throw ParcelError.forbidden }
@@ -159,7 +140,7 @@ import OSLog
     func transition(_ d: Delivery, to status: DeliveryStatus, reason: String = "") async throws {
         guard let p = profile else { throw ParcelError.forbidden }
         if demo { try await local?.transition(d.id, to: status, reason: reason, user: p); await refresh() }
-        else { _ = try await call("transitionDelivery", data: ["id": d.id, "status": status.rawValue, "reason": reason]) }
+        else { _ = try await call("transitionDelivery", data: ["id": d.id, "status": status.rawValue, "reason": reason]); if [.delivered, .cancelled].contains(status) { await tracking.stop(id: d.id) } }
     }
     func details(_ id: String) async throws -> DeliveryDetails? {
         guard let p = profile else { throw ParcelError.forbidden }
@@ -188,26 +169,26 @@ import OSLog
         else { _ = try await call("reviewDelivery", data: ["id": id, "text": text]) }
     }
     func logout() async throws {
+        authLoadGeneration = UUID()
+        await tracking.stopAll()
         stopListeners()
         if !demo && isConfigured {
             if let uid = Auth.auth().currentUser?.uid, let token = try? await Messaging.messaging().token() {
                 try? await Firestore.firestore().collection("users").document(uid).collection("tokens").document(token).delete()
             }
+            // Revoke server session while still authenticated. Offline logout still clears the local session.
+            _ = try? await call("revokeSession", data: [:])
             try Auth.auth().signOut()
         }
         profile = nil; orders = []; demo = false; deletionPending = false
     }
     func deleteAccount(password: String = "") async throws {
+        await tracking.stopAll()
         guard let p = profile else { return }
         if demo { try await local?.deleteAccount(p) }
         else {
-            guard let user = Auth.auth().currentUser, let email = user.email else { throw ParcelError.forbidden }
-            do { _ = try await user.reauthenticate(with: EmailAuthProvider.credential(withEmail: email, password: password)) }
-            catch {
-                if (error as NSError).code == AuthErrorCode.userNotFound.rawValue && deletionPending { try await logout(); return }
-                throw error
-            }
-            _ = try await user.getIDToken(forcingRefresh: true)
+            guard let phone = Auth.auth().currentUser?.phoneNumber, !phone.isEmpty else { throw ParcelError.forbidden }
+            try await loginPhone(phone: phone, password: password)
             _ = try await call("deleteAccount", data: [:])
         }
         try await logout()
@@ -225,7 +206,11 @@ import OSLog
 
 
 extension AppStore {
-    func photoData(_ path: String) async throws -> Data { try await Storage.storage().reference(withPath: path).data(maxSize: 5 * 1024 * 1024) }
+    func photoData(_ path: String) async throws -> Data {
+        let parts = path.split(separator: "/")
+        guard parts.count == 4, let response = try await call("parcelPhoto", data: ["id": String(parts[2])]) as? [String: Any], let base64 = response["base64"] as? String, let data = Data(base64Encoded: base64) else { throw ParcelError.invalid("Фото недоступно.") }
+        return data
+    }
 }
 
 extension AppStore {

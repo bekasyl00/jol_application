@@ -75,7 +75,7 @@ struct DeliveryDetailView: View {
                         if let reason = d.cancellationReason { Text("Причина отмены: \(reason)").foregroundStyle(.secondary) }
                     }.padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
                     if d.status == .waiting && store.profile?.role == .courier && d.senderId != store.profile?.id {
-                        Button("Принять за \(d.price) ₸") { Task { await store.perform { try await store.accept(d) } } }.buttonStyle(.borderedProminent).controlSize(.large)
+                        Button("Принять за \(d.price) ₸") { Task { await store.perform { try await store.accept(d) } } }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent).controlSize(.large)
                         Text("После принятия откроются адреса и контакты. Оплата по договорённости, комиссия 0%.").font(.caption).foregroundStyle(.secondary)
                     }
                     if let details {
@@ -89,9 +89,10 @@ struct DeliveryDetailView: View {
                         }.padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
                     }
                     if d.driverId == store.profile?.id, let next = d.status.next {
-                        Button(next == .enRoute ? "Еду к отправителю" : next == .pickedUp ? "Забрал посылку" : "Подтвердить доставку") { Task { await store.perform { try await store.transition(d, to: next) } } }.buttonStyle(.borderedProminent).controlSize(.large)
+                        Button(next == .enRoute ? "Еду к отправителю" : next == .pickedUp ? "Забрал посылку" : "Подтвердить доставку") { Task { await store.perform { try await store.transition(d, to: next) } } }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent).controlSize(.large)
                     }
                     if d.senderId == store.profile?.id || d.driverId == store.profile?.id {
+                        DeliveryTrackingView(delivery: d)
                         if [.waiting, .accepted, .enRoute].contains(d.status) { Button("Отменить доставку", role: .destructive) { cancelling = true } }
                         if d.driverId != nil {
                             Text("Чат по заказу").font(.headline)

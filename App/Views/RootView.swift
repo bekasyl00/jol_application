@@ -9,6 +9,9 @@ import FirebaseAuth
     })
     static let background = Color(uiColor: .systemGroupedBackground)
     static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let onAccent = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .black : .white
+    })
  }
 struct RootView: View {
     @Environment(AppStore.self) private var store
@@ -33,15 +36,6 @@ struct RootView: View {
 }
 struct AuthView: View {
     @Environment(AppStore.self) private var store
-    @State private var registering = false
-    @State private var email = ""
-    @State private var password = ""
-    @State private var name = ""
-    @State private var phone = ""
-    @State private var role = Role.sender
-    @State private var vehicle = ""
-    @State private var capacity = "50"
-    @State private var consent = false
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -50,34 +44,7 @@ struct AuthView: View {
                     Text("Другой город.\nБлиже, чем кажется.").font(.system(size: 36, weight: .bold)).tracking(-1)
                     Text("Отправляйте вещи с теми, кто уже едет. Между городами Казахстана.").foregroundStyle(.secondary)
                     if store.isConfigured {
-                        Picker("Аккаунт", selection: $registering) { Text("Войти").tag(false); Text("Регистрация").tag(true) }.pickerStyle(.segmented)
-                        VStack(spacing: 14) {
-                            TextField("Электронная почта", text: $email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
-                            SecureField("Пароль", text: $password).textContentType(registering ? .newPassword : .password)
-                            if registering {
-                                TextField("Ваше имя", text: $name)
-                                TextField("Телефон +7XXXXXXXXXX", text: $phone).keyboardType(.phonePad)
-                                Picker("Я хочу", selection: $role) { Text("Отправлять").tag(Role.sender); Text("Перевозить").tag(Role.courier) }.pickerStyle(.segmented)
-                                if role == .courier { TextField("Автомобиль", text: $vehicle); TextField("Грузоподъёмность, кг", text: $capacity).keyboardType(.decimalPad) }
-                            }
-                        }.textFieldStyle(.roundedBorder)
-                        if registering {
-                            Toggle("Принимаю условия сервиса и обработку данных", isOn: $consent).font(.caption)
-                            NavigationLink("Условия и данные") { ServiceInfoView() }
-                        } else {
-                            Button("Восстановить пароль") {
-                                Task { await store.perform {
-                                    guard !email.isEmpty else { throw ParcelError.invalid("Введите электронную почту.") }
-                                    try await Auth.auth().sendPasswordReset(withEmail: email)
-                                } }
-                            }.font(.caption)
-                        }
-                        Button(registering ? "Создать аккаунт" : "Войти") {
-                            Task { await store.perform {
-                                if registering { try await store.register(email: email, password: password, name: name, phone: phone, role: role, vehicle: vehicle, capacity: Double(capacity) ?? 0) }
-                                else { try await store.login(email: email, password: password) }
-                            } }
-                        }.buttonStyle(.borderedProminent).controlSize(.large).disabled(store.busy || (registering && !consent))
+                        PhoneAuthForm()
                     } else { Text("Firebase ещё не подключён. Проверьте сценарии в локальном деморежиме.").font(.callout).padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 16)) }
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Попробовать на этом устройстве").font(.headline)
@@ -128,7 +95,8 @@ struct ServiceInfoView: View {
                 Text("Наличные или перевод по договорённости. Приложение не принимает платежи; комиссия MVP — 0%.")
             }
             Section("Данные") {
-                Text("Профиль содержит имя, телефон, email и сведения об автомобиле. В заказе сохраняются маршрут, адреса, контакты получателя, описание, фото и чат. Адреса и телефоны видят участники заказа. Удаление аккаунта доступно в профиле после завершения или отмены активных доставок.")
+                Text("Профиль содержит имя, подтверждённый телефон и сведения об автомобиле. В заказе сохраняются маршрут, адреса, контакты получателя, описание, фото и чат. Адреса и телефоны видят участники заказа. Удаление аккаунта доступно в профиле после завершения или отмены активных доставок.")
+                Text("Во время активной доставки перевозчик может включить передачу позиции отправителю, в том числе в фоне. Передачу можно остановить. Без обновлений позиция скрывается через две минуты; история пути не сохраняется.")
                 configuredLink("Политика конфиденциальности", "PrivacyPolicyURL")
                 configuredLink("Условия сервиса", "TermsURL")
             }

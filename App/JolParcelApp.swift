@@ -3,6 +3,7 @@ import FirebaseCore
 import FirebaseAppCheck
 import FirebaseMessaging
 import FirebaseAuth
+import FirebaseFirestore
 import UserNotifications
 
 final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
@@ -14,13 +15,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
             #else
             AppCheck.setAppCheckProviderFactory(JolAppCheckFactory())
             #endif
-            FirebaseApp.configure(); Messaging.messaging().delegate = self
+            FirebaseApp.configure()
+            let settings = Firestore.firestore().settings
+            settings.cacheSettings = MemoryCacheSettings()
+            Firestore.firestore().settings = settings
+            Messaging.messaging().delegate = self
             UNUserNotificationCenter.current().delegate = self
         }
         #endif
         return true
     }
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) { Messaging.messaging().apnsToken = deviceToken }
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        guard FirebaseApp.app() != nil else { return }; Messaging.messaging().apnsToken = deviceToken
+    }
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        guard FirebaseApp.app() != nil else { return false }; return Auth.auth().canHandle(url)
+    }
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         NotificationCenter.default.post(name: .init("FCMToken"), object: token)

@@ -7,6 +7,9 @@ const {getStorage} = require("firebase-admin/storage");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentUpdated, onDocumentCreated} = require("firebase-functions/v2/firestore");
 const D = require("./domain");
+const A = require("./auth");
+const {AsyncLocalStorage} = require("node:async_hooks");
+const requestContext = new AsyncLocalStorage();
 initializeApp(process.env.FIRESTORE_EMULATOR_HOST ? {projectId: process.env.GCLOUD_PROJECT || "demo-jol", storageBucket: "demo-jol.appspot.com"} : undefined);
 const db = getFirestore();
 const options = {region: "europe-west1", enforceAppCheck: true, timeoutSeconds: 540};
@@ -14,6 +17,7 @@ function callable(handler) {
   return onCall(options, async request => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Войдите в аккаунт.");
     try {
+      await A.requireSession(request.auth);
       // Per-account budget also limits expensive reads and message spam.
       const quotaRef = db.doc(`quotas/${request.auth.uid}`);
       await db.runTransaction(async tx => {
@@ -23,7 +27,7 @@ function callable(handler) {
         if (!fresh && quota.count >= 60) throw new HttpsError("resource-exhausted", "Слишком много действий. Подождите минуту.");
         tx.set(quotaRef, {start: fresh ? now : quota.start, count: fresh ? 1 : quota.count + 1});
       });
-      return await handler(request.auth.uid, request.data || {}, request.auth);
+      return await requestContext.run(request.auth, () => handler(request.auth.uid, request.data || {}, request.auth));
     }
     catch (error) {
       if (error instanceof HttpsError) throw error;
@@ -34,6 +38,7 @@ function callable(handler) {
   });
 }
 async function profile(uid, tx) {
+  await A.requireSession(requestContext.getStore(), tx);
   const ref = db.doc(`users/${uid}`);
   const snap = tx ? await tx.get(ref) : await ref.get();
   if (!snap.exists) throw new HttpsError("failed-precondition", "Завершите регистрацию.");
@@ -47,8 +52,9 @@ exports.createDelivery = callable(async (uid, data) => {
   const ref = deliveryRef(data);
   let photoPath = null;
   if (data.photoPath != null) {
-    const expected = `parcels/${uid}/${order.id}/photo.jpg`;
-    if (data.photoPath !== expected) throw new HttpsError("invalid-argument", "Некорректное фото.");
+    const expected = data.photoPath;
+    const prefix = `parcels/${uid}/${order.id}/`;
+    if (typeof expected !== "string" || !expected.startsWith(prefix) || !/^[a-f0-9-]{36}\.jpg$/.test(expected.slice(prefix.length))) throw new HttpsError("invalid-argument", "Некорректное фото.");
     const [metadata] = await getStorage().bucket().file(expected).getMetadata();
     if (Number(metadata.size) > 5 * 1024 * 1024 || metadata.contentType !== "image/jpeg") throw new HttpsError("invalid-argument", "Некорректное фото.");
     photoPath = expected;
@@ -60,6 +66,12 @@ exports.createDelivery = callable(async (uid, data) => {
     if (old.exists) {
       if (old.data().senderId !== uid) throw new HttpsError("already-exists", "Этот ID уже используется.");
       return; // Retry after an unknown network outcome returns the original order.
+    }
+    if (photoPath) {
+      const uploadId = photoPath.split("/")[3].replace(/\.jpg$/, "");
+      const uploadRef = db.doc(`photoUploads/${uploadId}`), upload = (await tx.get(uploadRef)).data();
+      if (!upload || upload.uid !== uid || upload.path !== photoPath || upload.createdAt.toMillis() < Date.now() - 86400000) throw new HttpsError("failed-precondition", "Загрузите фото заново.");
+      tx.delete(uploadRef);
     }
     tx.create(ref, {...order, pickupAt: Timestamp.fromMillis(order.pickupAt), senderId: uid, driverId: null, status: "waiting", photoPath, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp()});
     tx.create(ref.collection("private").doc("details"), {...details, ...(details.route ? {route: {...details.route, calculatedAt: Timestamp.fromMillis(details.route.calculatedAt)}} : {})});
@@ -95,6 +107,10 @@ exports.transitionDelivery = callable(async (uid, data) => {
       tx.update(tripRef.collection("private").doc("details"), {deliveryIds: tripDetails.deliveryIds.filter(id => id !== d.id)});
     }
     pending?.docs.forEach(s => tx.update(s.ref, {status: "expired"}));
+    if (["delivered", "cancelled"].includes(data.status)) {
+      tx.set(db.doc(`trackingSessions/${ref.id}`), {active: false}, {merge: true});
+      tx.delete(ref.collection("private").doc("liveLocation"));
+    }
     tx.update(ref, {...patch, updatedAt: FieldValue.serverTimestamp()});
   });
   return {ok: true};
@@ -134,6 +150,7 @@ exports.deleteAccount = callable(async (uid, data, auth) => {
   if (!auth?.token?.auth_time || Date.now() / 1000 - auth.token.auth_time > 300) throw new HttpsError("unauthenticated", "Подтвердите пароль перед удалением аккаунта.");
   const userRef = db.doc(`users/${uid}`);
   await db.runTransaction(async tx => {
+    await A.requireSession(auth, tx);
     const user = await tx.get(userRef);
     if (!user.exists) return;
     const sender = await tx.get(db.collection("deliveries").where("senderId", "==", uid));
@@ -145,6 +162,7 @@ exports.deleteAccount = callable(async (uid, data, auth) => {
   const docs = new Map([...sender.docs, ...driver.docs].map(s => [s.id, s]));
   for (const snap of docs.values()) {
     if (snap.data().photoPath) await getStorage().bucket().file(snap.data().photoPath).delete({ignoreNotFound: true});
+    await db.doc(`trackingSessions/${snap.id}`).delete();
     await db.recursiveDelete(snap.ref); // Removes order contacts, recipient data, chat and review.
   }
   const ownedTrips = await db.collection("trips").where("driverId", "==", uid).get();
@@ -153,10 +171,19 @@ exports.deleteAccount = callable(async (uid, data, auth) => {
   for (const group of proposalGroups) for (const proposal of group.docs) await proposal.ref.delete();
   await getStorage().bucket().deleteFiles({prefix: `parcels/${uid}/`});
   // Keep a PII-free tombstone: cached auth tokens cannot recreate a deleted profile.
+  const storedUser = (await userRef.get()).data();
+  if (storedUser?.phone) await db.doc(`phoneIndex/${A.hashKey(storedUser.phone)}`).delete();
+  await db.doc(`passwordCredentials/${uid}`).delete();
+  await db.doc(`authState/${uid}`).delete();
+  const sessions = await db.collection("authSessions").where("uid", "==", uid).get();
+  for (const session of sessions.docs) await session.ref.delete();
   await userRef.set({id: uid, deleting: true});
   const tokens = await userRef.collection("tokens").get();
   await Promise.all(tokens.docs.map(snap => snap.ref.delete()));
   await db.doc(`quotas/${uid}`).delete();
+  await db.doc(`photoQuotas/${uid}`).delete();
+  const uploads = await db.collection("photoUploads").where("uid", "==", uid).get();
+  for (const upload of uploads.docs) await upload.ref.delete();
   try { await getAuth().deleteUser(uid); } catch (error) { if (error.code !== "auth/user-not-found") throw error; }
   return {ok: true};
 });
@@ -185,3 +212,11 @@ exports.messageNotification = onDocumentCreated({region: options.region, documen
 });
 
 Object.assign(exports, require("./trips").handlers({db, callable, profile, existing}));
+
+Object.assign(exports, A.handlers());
+
+Object.assign(exports, require("./photos").handlers({db, callable, profile, existing}));
+
+Object.assign(exports, require("./tracking").handlers({db, callable, profile, existing}));
+
+exports.cleanupEphemeral = require("./cleanup").handler(db, getStorage().bucket());

@@ -10,13 +10,14 @@ struct PlaceField: View {
         Button { showing = true } label: {
             HStack {
                 Image(systemName: selection == nil ? "mappin.and.ellipse" : "mappin.circle.fill")
+                    .foregroundStyle(Theme.green)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.caption).foregroundStyle(.secondary)
-                    Text(selection?.label ?? "Выбрать адрес или точку").foregroundStyle(.primary).lineLimit(3)
+                    Text(title).font(.caption).foregroundStyle(Color.secondary)
+                    Text(selection?.label ?? "Выбрать адрес или точку").foregroundStyle(Color.primary).lineLimit(3)
                 }
-                Spacer(); Image(systemName: "chevron.right").font(.caption)
+                Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.green)
             }
-        }
+        }.buttonStyle(.plain)
         .sheet(isPresented: $showing) { LocationPicker(title: title, city: city, selection: $selection) }
     }
 }
@@ -47,8 +48,8 @@ struct LocationPicker: View {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(search.results, id: \.self) { result in
                                 Button { Task { await choose(result) } } label: {
-                                    VStack(alignment: .leading) { Text(result.title).foregroundStyle(.primary); Text(result.subtitle).font(.caption).foregroundStyle(.secondary) }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 9)
-                                }; Divider()
+                                    VStack(alignment: .leading) { Text(result.title).foregroundStyle(Color.primary); Text(result.subtitle).font(.caption).foregroundStyle(Color.secondary) }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 9)
+                                }.buttonStyle(.plain); Divider()
                             }
                         }.padding(.horizontal)
                     }.frame(maxHeight: 175)
@@ -69,7 +70,7 @@ struct LocationPicker: View {
                 if let candidate { Text(candidate.label).font(.callout).lineLimit(3).padding(.horizontal) }
                 Button("Подтвердить точку") {
                     guard let candidate else { return }; selection = candidate; dismiss()
-                }.buttonStyle(.borderedProminent).controlSize(.large).disabled(candidate == nil || resolving).padding(.bottom)
+                }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent).controlSize(.large).disabled(candidate == nil || resolving).padding(.bottom)
             }
             .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } } }
