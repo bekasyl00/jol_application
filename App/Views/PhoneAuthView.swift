@@ -30,10 +30,10 @@ struct PhoneAuthForm: View {
                 Text("Подтвердите номер кодом и задайте новый пароль.").font(.callout).foregroundStyle(.secondary)
             }
             TextField("Номер телефона +7", text: $phone).keyboardType(.phonePad).textContentType(.telephoneNumber).disabled(auth.verificationID != nil)
-            SecureField(mode == .login ? "Пароль" : "Новый пароль: минимум 15 символов", text: $password).textContentType(mode == .login ? .password : .newPassword)
+            SecureField(mode == .login ? "Пароль" : "Новый пароль: минимум 6 символов", text: $password).textContentType(mode == .login ? .password : .newPassword)
             if mode != .login {
                 SecureField("Повторите пароль", text: $repeated).textContentType(.newPassword)
-                Text("От 15 до 128 символов. Можно использовать длинную фразу; пробелы разрешены.").font(.caption).foregroundStyle(.secondary)
+                Text("От 6 до 128 символов. Пробелы разрешены.").font(.caption).foregroundStyle(.secondary)
             }
             if mode == .register {
                 TextField("Ваше имя", text: $name).textContentType(.name)
@@ -119,7 +119,7 @@ struct PhoneAuthForm: View {
             .accessibilityAddTraits(role == value ? .isSelected : [])
     }
     func validateNewPassword() throws {
-        guard password.unicodeScalars.count >= 15, password.unicodeScalars.count <= 128, password.utf8.count <= 512 else { throw ParcelError.invalid("Пароль: от 15 до 128 символов.") }
+        guard password.unicodeScalars.count >= 6, password.unicodeScalars.count <= 128, password.utf8.count <= 512 else { throw ParcelError.invalid("Пароль: от 6 до 128 символов.") }
         guard password == repeated else { throw ParcelError.invalid("Пароли не совпадают.") }
         if mode == .register && !migrating {
             let p = Profile(id: "new", name: name, phone: try PhoneAuthService.normalizedPhone(phone), role: role, vehicle: vehicle, capacityKg: Double(capacity.replacingOccurrences(of: ",", with: ".")) ?? 0)

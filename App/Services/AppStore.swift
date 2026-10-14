@@ -50,8 +50,10 @@ import OSLog
         do { try await work() } catch {
             #if JOL_LOCAL_SERVER
             let failure = error as NSError
-            if failure.domain == NSURLErrorDomain ||
-                (failure.domain == FunctionsErrorDomain && [FunctionsErrorCode.unavailable.rawValue, FunctionsErrorCode.deadlineExceeded.rawValue].contains(failure.code)) ||
+            if failure.domain == FunctionsErrorDomain && failure.code == FunctionsErrorCode.deadlineExceeded.rawValue {
+                self.error = "Сервер на Mac отвечает слишком долго. Подождите и повторите попытку. После регистрации попробуйте войти с тем же номером и паролем."
+            } else if failure.domain == NSURLErrorDomain ||
+                (failure.domain == FunctionsErrorDomain && failure.code == FunctionsErrorCode.unavailable.rawValue) ||
                 (failure.domain == AuthErrorDomain && failure.code == AuthErrorCode.networkError.rawValue) {
                 self.error = LocalBackend.connectionHelp
             } else { self.error = error.localizedDescription }
@@ -122,7 +124,8 @@ import OSLog
     func call(_ name: String, data: [String: Any]) async throws -> Any {
         let function = backend.httpsCallable(name)
         #if JOL_LOCAL_SERVER
-        function.timeoutInterval = 15
+        // A cold emulator on a Mac running Xcode can take longer than a hosted function.
+        function.timeoutInterval = 60
         #endif
         return try await function.call(data).data
     }

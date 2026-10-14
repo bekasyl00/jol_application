@@ -11,7 +11,7 @@ const cost = {N: 131072, r: 8, p: 1, maxmem: 192 * 1024 * 1024};
 const hashKey = value => createHash("sha256").update(value).digest("hex");
 function phone(value) { if (typeof value !== "string" || !/^\+7\d{10}$/.test(value)) throw new HttpsError("invalid-argument", "Введите телефон в формате +7XXXXXXXXXX."); return value; }
 function password(value) {
-  if (typeof value !== "string" || [...value].length < 15 || [...value].length > 128 || Buffer.byteLength(value, "utf8") > 512) throw new HttpsError("invalid-argument", "Пароль: от 15 до 128 символов.");
+  if (typeof value !== "string" || [...value].length < 6 || [...value].length > 128 || Buffer.byteLength(value, "utf8") > 512) throw new HttpsError("invalid-argument", "Пароль: от 6 до 128 символов.");
   return value;
 }
 async function makeVerifier(value) {

@@ -17,6 +17,9 @@ test("password policy supports passphrases without truncation and scrypt verifie
  assert.equal(await A.checkPassword(password, verifier), true);
  assert.equal(await A.checkPassword(password + " ", verifier), false);
  assert.throws(() => A.password("short"));
+ assert.equal(A.password("Jol!26"), "Jol!26");
+ assert.throws(() => A.password("😀".repeat(5)));
+ assert.equal(A.password("😀".repeat(6)), "😀".repeat(6));
  assert.throws(() => A.password("a".repeat(129)));
  assert.equal(A.password("x".repeat(64)).length, 64);
  const other = await A.makeVerifier(password);

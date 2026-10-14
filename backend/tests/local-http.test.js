@@ -30,8 +30,8 @@ async function custom(token) {
  const claims = JSON.parse(Buffer.from(session.idToken.split(".")[1], "base64url").toString());
  return {...session, localId: claims.sub};
 }
-async function user(phone, role) {
- const password = `test-only-${randomUUID()}`, sms = await proof(phone);
+async function user(phone, role, password = `test-only-${randomUUID()}`) {
+ const sms = await proof(phone);
  // SMS confirmation alone cannot read a profile or mutate orders.
  await assert.rejects(json(documents + "users/" + sms.localId, undefined, sms.idToken), {status: 403});
  await assert.rejects(call("createDelivery", {}, sms.idToken), {status: 401});
@@ -45,7 +45,7 @@ async function user(phone, role) {
 test("local HTTP: SMS proof, password sessions, two parcels, private GPS and reset revocation", {timeout: 180000}, async () => {
  assert.deepEqual(await json(functions + "localHealth"), {project});
  await assert.rejects(call("createDelivery"), {status: 401});
- const sender = await user("+77000000011", "sender");
+ const sender = await user("+77000000011", "sender", "Jol!26");
  const courier = await user("+77000000012", "courier");
  const outsider = await user("+77000000013", "sender");
  const senderToken = sender.idToken, driverToken = courier.idToken;
@@ -74,7 +74,7 @@ test("local HTTP: SMS proof, password sessions, two parcels, private GPS and res
  await call("stopTracking", {id}, driverToken);
  await assert.rejects(json(documents + `deliveries/${id}/private/liveLocation`, undefined, senderToken));
  // A fresh proof resets the password without changing identity; old sessions stop working.
- const freshProof = await proof(sender.phone), replacement = `test-replacement-${randomUUID()}`;
+ const freshProof = await proof(sender.phone), replacement = "New!26";
  await call("resetPhonePassword", {password: replacement}, freshProof.idToken);
  await assert.rejects(json(documents + "users/" + sender.localId, undefined, senderToken), {status: 403});
  await assert.rejects(call("loginPhonePassword", {phone: sender.phone, password: sender.password}), {status: 401});
