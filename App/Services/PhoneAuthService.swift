@@ -7,6 +7,9 @@ import FirebaseCore
     var verifiedPhone = ""
     var resendAfter = Date.distantPast
     var migrating = false
+    #if JOL_LOCAL_SERVER
+    var localCode: String?
+    #endif
     static func normalizedPhone(_ raw: String) throws -> String {
         let digits = raw.filter(\.isNumber)
         let normalized: String
@@ -19,6 +22,10 @@ import FirebaseCore
     func sendCode(phone: String) async throws {
         guard Date() >= resendAfter else { throw ParcelError.invalid("Повторный код можно запросить через минуту.") }
         let normalized = try Self.normalizedPhone(phone)
+        #if JOL_LOCAL_SERVER
+        do { try await LocalBackend.checkConnection() }
+        catch { throw ParcelError.invalid(LocalBackend.connectionHelp) }
+        #endif
         // Firebase raises an exception for a missing callback scheme; show a recoverable error first.
         let schemes = (Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] ?? [])
             .flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
@@ -31,6 +38,9 @@ import FirebaseCore
         Auth.auth().languageCode = "ru"
         let id = try await PhoneAuthProvider.provider().verifyPhoneNumber(normalized, uiDelegate: nil)
         verificationID = id; verifiedPhone = normalized; resendAfter = Date().addingTimeInterval(60)
+        #if JOL_LOCAL_SERVER
+        localCode = try? await LocalBackend.testCode(phone: normalized, session: id)
+        #endif
     }
     func prove(code: String) async throws {
         guard let verificationID, code.count == 6, code.allSatisfy(\.isNumber) else { throw ParcelError.invalid("Введите шестизначный SMS-код.") }
@@ -45,7 +55,12 @@ import FirebaseCore
     func prepareMigration(email: String, password: String) async throws {
         _ = try await Auth.auth().signIn(withEmail: email, password: password); migrating = true
     }
-    func clearProof() { verificationID = nil; verifiedPhone = ""; migrating = false }
+    func clearProof() {
+        verificationID = nil; verifiedPhone = ""; migrating = false
+        #if JOL_LOCAL_SERVER
+        localCode = nil
+        #endif
+    }
 }
 
 extension AppStore {

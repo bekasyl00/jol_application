@@ -72,7 +72,7 @@ struct LocationPicker: View {
                     guard let candidate else { return }; selection = candidate; dismiss()
                 }.buttonStyle(.borderedProminent).foregroundStyle(Theme.onAccent).controlSize(.large).disabled(candidate == nil || resolving).padding(.bottom)
             }
-            .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(title).navigationBarTitleDisplayMode(.inline).dismissibleKeyboard()
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } } }
             .task {
                 candidate = selection
@@ -93,6 +93,7 @@ struct LocationPicker: View {
         }
     }
     func choose(_ result: MKLocalSearchCompletion) async {
+        AppKeyboard.dismiss()
         let ticket = UUID(); revision = ticket; resolving = true; message = nil
         defer { if revision == ticket { resolving = false } }
         do {
@@ -103,6 +104,7 @@ struct LocationPicker: View {
         } catch { if revision == ticket { message = "Не удалось найти точку. Выберите её на карте." } }
     }
     func chooseCenter() async {
+        AppKeyboard.dismiss()
         let ticket = UUID(); revision = ticket; resolving = true; message = nil; search.cancel()
         let point = GeoPoint(region.center)
         defer { if revision == ticket { resolving = false } }

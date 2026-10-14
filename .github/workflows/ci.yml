@@ -33,6 +33,7 @@ jobs:
       - run: npm run check --prefix backend/functions
       - run: npm audit --omit=dev --prefix backend/functions
       - run: npm run test:rules
+      - run: npm run test:local
   ios:
     name: Swift core and iOS simulator build
     runs-on: macos-26
@@ -45,5 +46,10 @@ jobs:
       - name: Build iOS demo (no signing or Firebase credentials)
         run: >-
           xcodebuild -project JolParcel.xcodeproj -scheme JolParcel
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Build local server client (no signing or Firebase credentials)
+        run: >-
+          xcodebuild -project JolParcel.xcodeproj -scheme JolParcelLocal
           -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO build

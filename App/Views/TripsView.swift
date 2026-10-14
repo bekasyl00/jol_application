@@ -122,7 +122,7 @@ struct CreateTripView: View {
                     Text("В каталоге видны города и приблизительные районы. Точные точки поездки видите только вы.").font(.caption)
                     Button("Опубликовать поездку") { Task { await store.perform { try await publish() } } }.disabled(store.busy || origin == nil || destination == nil)
                 }
-            }.navigationTitle("Новая поездка")
+            }.navigationTitle("Новая поездка").dismissibleKeyboard()
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } } }
                 .onAppear { capacity = String(store.profile?.capacityKg ?? 50) }
                 .onChange(of: from) { origin = nil }

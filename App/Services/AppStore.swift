@@ -47,7 +47,18 @@ import OSLog
     }
     func perform(_ work: () async throws -> Void) async {
         guard !busy else { return }; busy = true; defer { busy = false }
-        do { try await work() } catch { self.error = error.localizedDescription }
+        do { try await work() } catch {
+            #if JOL_LOCAL_SERVER
+            let failure = error as NSError
+            if failure.domain == NSURLErrorDomain ||
+                (failure.domain == FunctionsErrorDomain && [FunctionsErrorCode.unavailable.rawValue, FunctionsErrorCode.deadlineExceeded.rawValue].contains(failure.code)) ||
+                (failure.domain == AuthErrorDomain && failure.code == AuthErrorCode.networkError.rawValue) {
+                self.error = LocalBackend.connectionHelp
+            } else { self.error = error.localizedDescription }
+            #else
+            self.error = error.localizedDescription
+            #endif
+        }
     }
     private func openDemoStorage() throws -> LocalRepository {
         if let local { return local }
@@ -109,7 +120,11 @@ import OSLog
         else if profile?.role == .sender { do { try await loadCatalog(reset: true) } catch { self.error = error.localizedDescription } }
     }
     func call(_ name: String, data: [String: Any]) async throws -> Any {
-        try await backend.httpsCallable(name).call(data).data
+        let function = backend.httpsCallable(name)
+        #if JOL_LOCAL_SERVER
+        function.timeoutInterval = 15
+        #endif
+        return try await function.call(data).data
     }
     func create(_ d: Delivery, details: DeliveryDetails, photo: Data?) async throws {
         guard let p = profile else { throw ParcelError.forbidden }
@@ -173,7 +188,7 @@ import OSLog
         await tracking.stopAll()
         stopListeners()
         if !demo && isConfigured {
-            if let uid = Auth.auth().currentUser?.uid, let token = try? await Messaging.messaging().token() {
+            if !LocalBackend.enabled, let uid = Auth.auth().currentUser?.uid, let token = try? await Messaging.messaging().token() {
                 try? await Firestore.firestore().collection("users").document(uid).collection("tokens").document(token).delete()
             }
             // Revoke server session while still authenticated. Offline logout still clears the local session.
@@ -194,12 +209,13 @@ import OSLog
         try await logout()
     }
     func enableNotifications() async throws {
+        guard !LocalBackend.enabled else { throw ParcelError.invalid("В локальной сборке изменения видны в открытом приложении. Push-уведомления подключим в облачной версии.") }
         guard !demo, isConfigured else { throw ParcelError.invalid("Push-уведомления доступны после подключения Firebase.") }
         guard try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) else { return }
         UIApplication.shared.registerForRemoteNotifications(); await syncToken()
     }
     func saveToken(_ token: String) async throws {
-        guard !demo, let uid = Auth.auth().currentUser?.uid else { return }
+        guard !LocalBackend.enabled, !demo, let uid = Auth.auth().currentUser?.uid else { return }
         try await Firestore.firestore().collection("users").document(uid).collection("tokens").document(token).setData(["token": token, "updatedAt": FieldValue.serverTimestamp()])
     }
 }
@@ -215,7 +231,7 @@ extension AppStore {
 
 extension AppStore {
     func syncToken() async {
-        guard isConfigured, !demo, profile != nil else { return }
+        guard !LocalBackend.enabled, isConfigured, !demo, profile != nil else { return }
         if let token = try? await Messaging.messaging().token() { try? await saveToken(token) }
     }
 }

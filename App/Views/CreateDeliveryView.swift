@@ -79,6 +79,7 @@ struct CreateDeliveryView: View {
                 }
             }.navigationTitle("Отправить посылку")
             .onChange(of: from) { pickupPlace = nil }
+            .dismissibleKeyboard()
             .onChange(of: to) { dropoffPlace = nil }
             .onChange(of: routeKey) { routing.reset(); distance = nil; demoDistance = false; price = "" }
             .task(id: routeKey) { await calculate() }

@@ -8,7 +8,9 @@ import UserNotifications
 
 final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        #if !JOL_DEMO_ONLY
+        #if JOL_LOCAL_SERVER
+        LocalBackend.configure()
+        #elseif !JOL_DEMO_ONLY
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             #if DEBUG
             AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
@@ -26,7 +28,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNU
         return true
     }
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        guard FirebaseApp.app() != nil else { return }; Messaging.messaging().apnsToken = deviceToken
+        guard !LocalBackend.enabled, FirebaseApp.app() != nil else { return }; Messaging.messaging().apnsToken = deviceToken
+    }
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        // Auth's emulator probes this callback even though Local never registers for APNs.
+        if FirebaseApp.app() != nil, Auth.auth().canHandleNotification(userInfo) { completionHandler(.noData); return }
+        completionHandler(.noData)
     }
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         guard FirebaseApp.app() != nil else { return false }; return Auth.auth().canHandle(url)

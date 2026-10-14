@@ -97,7 +97,7 @@ struct DeliveryDetailView: View {
                         if d.driverId != nil {
                             Text("Чат по заказу").font(.headline)
                             ForEach(messages) { msg in
-                                HStack { if msg.fromUser == store.profile?.id { Spacer(minLength: 30) }; Text(msg.text).padding(12).background(msg.fromUser == store.profile?.id ? Theme.green.opacity(0.12) : .white, in: RoundedRectangle(cornerRadius: 14)); if msg.fromUser != store.profile?.id { Spacer(minLength: 30) } }
+                                HStack { if msg.fromUser == store.profile?.id { Spacer(minLength: 30) }; Text(msg.text).padding(12).background(msg.fromUser == store.profile?.id ? Theme.green.opacity(0.12) : Theme.surface, in: RoundedRectangle(cornerRadius: 14)); if msg.fromUser != store.profile?.id { Spacer(minLength: 30) } }
                             }
                             if d.status.isActive {
                                 HStack { TextField("Сообщение", text: $message, axis: .vertical).textFieldStyle(.roundedBorder); Button { Task { await store.perform { try await store.send(id, text: message); message = ""; try await load() } } } label: { Image(systemName: "arrow.up.circle.fill").font(.title) }.disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
@@ -111,7 +111,7 @@ struct DeliveryDetailView: View {
                     }
                 }.padding(22).disabled(store.busy)
             } else { ContentUnavailableView("Заказ недоступен", systemImage: "shippingbox") }
-        }.background(Theme.background).navigationTitle("Доставка").navigationBarTitleDisplayMode(.inline)
+        }.background(Theme.background).navigationTitle("Доставка").navigationBarTitleDisplayMode(.inline).dismissibleKeyboard()
         .task(id: delivery?.driverId) { do { try await load() } catch { store.error = error.localizedDescription } }
         .task {
             while !Task.isCancelled {

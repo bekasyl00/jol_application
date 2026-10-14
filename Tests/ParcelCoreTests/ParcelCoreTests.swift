@@ -2,6 +2,14 @@ import XCTest
 @testable import ParcelCore
 
 final class ParcelCoreTests: XCTestCase {
+    func testDevelopmentHostsCannotReachPublicEndpoints() {
+        for host in ["localhost", "127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.254", "192.168.100.141"] {
+            XCTAssertTrue(DevelopmentServerAddress.isAllowed(host), host)
+        }
+        for host in ["", "8.8.8.8", "0.0.0.0", "192.168.1.999", "192.168.01.2", "172.15.0.1", "172.32.0.1", "localhost.evil", "http://127.0.0.1", "127.0.0.1:9099", "10.0.0.1/path", "10.0.0.1 "] {
+            XCTAssertFalse(DevelopmentServerAddress.isAllowed(host), host)
+        }
+    }
     func testPricingAndInvalidInput() throws {
         XCTAssertEqual(try Pricing.quote(distanceKm: 100, volume: 0.06), 2100)
         XCTAssertThrowsError(try Pricing.quote(distanceKm: .nan, volume: 0.1))

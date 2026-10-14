@@ -28,6 +28,9 @@ struct RootView: View {
                 }
             } else { AuthView() }
         }
+        #if JOL_LOCAL_SERVER
+        .safeAreaInset(edge: .top, spacing: 0) { LocalServerBanner() }
+        #endif
         .alert("Не удалось выполнить действие", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("Понятно") { store.error = nil } } message: { Text(store.error ?? "") }
         .onReceive(NotificationCenter.default.publisher(for: .init("FCMToken"))) { event in
             if let token = event.object as? String { Task { try? await store.saveToken(token) } }
@@ -45,14 +48,20 @@ struct AuthView: View {
                     Text("Отправляйте вещи с теми, кто уже едет. Между городами Казахстана.").foregroundStyle(.secondary)
                     if store.isConfigured {
                         PhoneAuthForm()
-                    } else { Text("Firebase ещё не подключён. Проверьте сценарии в локальном деморежиме.").font(.callout).padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 16)) }
+                    } else {
+                        #if JOL_LOCAL_SERVER
+                        Text(LocalBackend.configurationError ?? "Локальный сервер не настроен.")
+                        #else
+                        Text("Firebase ещё не подключён. Проверьте сценарии в локальном деморежиме.").font(.callout).padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
+                        #endif
+                    }
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Попробовать на этом устройстве").font(.headline)
                         HStack { demoButton("Отправитель", .sender); demoButton("Перевозчик", .courier) }
                         Text("Демо хранит данные локально. В профиле можно сменить роль и пройти весь путь посылки.").font(.caption).foregroundStyle(.secondary)
                     }
                 }.padding(24)
-            }.background(Theme.background)
+            }.background(Theme.background).dismissibleKeyboard()
         }
     }
     func demoButton(_ label: String, _ role: Role) -> some View {
@@ -75,7 +84,7 @@ struct ProfileView: View {
                     }
                 }
                 Section {
-                    Button("Включить уведомления", systemImage: "bell") { Task { await store.perform { try await store.enableNotifications() } } }
+                    if !LocalBackend.enabled { Button("Включить уведомления", systemImage: "bell") { Task { await store.perform { try await store.enableNotifications() } } } }
                     if store.demo { Button("Сменить демороль", systemImage: "arrow.triangle.2.circlepath") { Task { await store.perform { try await store.enterDemo(role: store.profile?.role == .sender ? .courier : .sender) } } } }
                     NavigationLink("О сервисе и помощи") { ServiceInfoView() }
                     Button("Выйти") { Task { await store.perform { try await store.logout() } } }
