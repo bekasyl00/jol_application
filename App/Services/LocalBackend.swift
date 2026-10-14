@@ -38,9 +38,12 @@ enum LocalBackend {
         Auth.auth().useEmulator(withHost: host, port: 9099)
         let firestore = Firestore.firestore()
         let settings = firestore.settings
+        settings.host = "\(host):8080"
         settings.cacheSettings = MemoryCacheSettings()
+        // The local Firestore emulator serves plaintext gRPC, including over the validated LAN host.
+        // useEmulator sets the host but does not disable TLS in the Apple SDK.
+        settings.isSSLEnabled = false
         firestore.settings = settings
-        firestore.useEmulator(withHost: host, port: 8080)
         let functions = Functions.functions(region: "europe-west1")
         functions.useEmulator(withHost: host, port: 5001)
         // Firebase's debug-only opt-in for physical devices on a trusted LAN.
