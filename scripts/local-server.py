@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import socket
 import subprocess
 import sys
@@ -89,12 +90,15 @@ def main():
         print(f'Jol Local: {host}. В Xcode выберите JolParcelLocal и нажмите Run.\n'
               'Только тестовые данные в доверенной Wi-Fi сети. Mac должен оставаться включённым.\n'
               'Ctrl+C сохранит данные и остановит сервер. Панель: http://127.0.0.1:4000', flush=True)
-    process = subprocess.Popen(command, cwd=ROOT, env=env)
+    # The terminal sends Ctrl+C to the whole foreground process group. Keep the
+    # wrapper alive while Firebase exports, even if npm forwards SIGINT again.
+    # A caught handler (unlike SIG_IGN) resets to the default in the child exec.
+    previous_handler = signal.signal(signal.SIGINT, lambda _signal, _frame: None)
     try:
+        process = subprocess.Popen(command, cwd=ROOT, env=env)
         return process.wait()
-    except KeyboardInterrupt:
-        # The foreground terminal sends SIGINT to both processes. Let Firebase export safely.
-        return process.wait()
+    finally:
+        signal.signal(signal.SIGINT, previous_handler)
 
 if __name__ == '__main__':
     try:
