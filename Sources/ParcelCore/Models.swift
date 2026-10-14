@@ -48,6 +48,10 @@ public struct Delivery: Codable, Sendable, Identifiable {
     public var cancellationReason: String?
     public var review: String?
     public var photoPath: String?
+    public var pickupArea: GeoPoint?
+    public var dropoffArea: GeoPoint?
+    public var tripId: String?
+    public var distanceSource: String?
     public init(id: String = UUID().uuidString, senderId: String, fromCity: String, toCity: String, itemDescription: String, size: ParcelSize, weight: Double, volume: Double, distanceKm: Double, price: Int, pickupAt: Date, photoPath: String? = nil) {
         self.id = id; self.senderId = senderId; self.fromCity = fromCity; self.toCity = toCity; self.itemDescription = itemDescription
         self.size = size; self.weight = weight; self.volume = volume; self.distanceKm = distanceKm; self.price = price; self.pickupAt = pickupAt
@@ -60,8 +64,12 @@ public struct DeliveryDetails: Codable, Sendable {
     public var recipientName: String
     public var recipientPhone: String
     public var comment: String
-    public init(addressFrom: String, addressTo: String, recipientName: String, recipientPhone: String, comment: String) {
+    public var pickupPlace: SelectedPlace?
+    public var dropoffPlace: SelectedPlace?
+    public var route: RouteSummary?
+    public init(addressFrom: String, addressTo: String, recipientName: String, recipientPhone: String, comment: String, pickupPlace: SelectedPlace? = nil, dropoffPlace: SelectedPlace? = nil, route: RouteSummary? = nil) {
         self.addressFrom = addressFrom; self.addressTo = addressTo; self.recipientName = recipientName; self.recipientPhone = recipientPhone; self.comment = comment
+        self.pickupPlace = pickupPlace; self.dropoffPlace = dropoffPlace; self.route = route
     }
 }
 public struct ChatMessage: Codable, Sendable, Identifiable {
@@ -93,7 +101,14 @@ public enum Validation {
               !details.addressFrom.isEmpty, !details.addressTo.isEmpty, !details.recipientName.isEmpty,
               validPhone(details.recipientPhone), details.comment.count <= 1000,
               d.pickupAt > Date().addingTimeInterval(-300), d.pickupAt <= Date().addingTimeInterval(366 * 86400) else { throw ParcelError.invalid("Проверьте маршрут, адреса, получателя, дату и цену.") }
-        _ = try Pricing.quote(distanceKm: d.distanceKm, volume: d.volume)
+        if details.pickupPlace != nil || details.dropoffPlace != nil {
+            guard details.pickupPlace?.isValid == true, details.dropoffPlace?.isValid == true else { throw ParcelError.invalid("Подтвердите обе точки на карте.") }
+        }
+        if let route = details.route, !route.isValid { throw ParcelError.invalid("Некорректный маршрут.") }
+        if d.distanceSource == "unavailable" {
+            guard d.distanceKm == 0, details.pickupPlace?.isValid == true, details.dropoffPlace?.isValid == true else { throw ParcelError.invalid("Подтвердите точки маршрута.") }
+            _ = try Pricing.quote(distanceKm: 1, volume: d.volume)
+        } else { _ = try Pricing.quote(distanceKm: d.distanceKm, volume: d.volume) }
     }
 }
 public let kazakhstanCities = ["Алматы", "Астана", "Шымкент", "Караганда", "Тараз", "Актобе", "Атырау", "Актау", "Павлодар", "Семей", "Өскемен", "Костанай", "Кызылорда", "Петропавловск", "Уральск", "Талдыкорган"]

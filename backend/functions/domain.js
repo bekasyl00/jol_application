@@ -23,7 +23,19 @@ function validateOrder(input, now = Date.now()) {
   const orderId = id(input.id);
   if (!cities.includes(input.fromCity) || !cities.includes(input.toCity) || input.fromCity === input.toCity) fail("Выберите разные города из списка.");
   if (!["packet", "bag", "box", "suitcase"].includes(input.size)) fail("Неизвестный размер посылки.");
-  const distanceKm = number(input.distanceKm, "расстояние", 1, 5000);
+  const pickupPlace = input.pickupPlace == null ? null : place(input.pickupPlace);
+  const dropoffPlace = input.dropoffPlace == null ? null : place(input.dropoffPlace);
+  if (!!pickupPlace !== !!dropoffPlace) fail("Подтвердите обе точки.");
+  const distanceSource = input.distanceSource || "legacy";
+  if (!["legacy", "appleMapKit", "unavailable"].includes(distanceSource)) fail("Некорректный источник расстояния.");
+  if (distanceSource !== "legacy" && !pickupPlace) fail("Подтвердите точки.");
+  const distanceKm = number(input.distanceKm, "расстояние", distanceSource === "unavailable" ? 0 : 1, distanceSource === "unavailable" ? 0 : 5000);
+  const route = input.route == null ? null : {
+    distanceMeters: number(input.route.distanceMeters, "длина маршрута", 1, 5000000),
+    durationSeconds: number(input.route.durationSeconds, "время пути", 1, 604800),
+    calculatedAt: number(input.route.calculatedAt, "время расчёта", now - 86400000, now + 60000)
+  };
+  if (distanceSource === "appleMapKit" && (!route || Math.abs(Math.ceil(route.distanceMeters / 1000) - distanceKm) > 1)) fail("Обновите расчёт маршрута.");
   const volume = number(input.volume, "объём", 0.001, 5);
   const weight = number(input.weight, "вес", 0.1, 5000);
   const price = number(input.price, "цена", 1, 1000000);
@@ -33,8 +45,8 @@ function validateOrder(input, now = Date.now()) {
   if (!/^\+7\d{10}$/.test(phone)) fail("Телефон: +7XXXXXXXXXX.");
   const comment = typeof input.comment === "string" && input.comment.length <= 1000 ? input.comment.trim() : fail("Комментарий — до 1000 символов.");
   return {
-    order: {id: orderId, fromCity: input.fromCity, toCity: input.toCity, itemDescription: text(input.itemDescription, "описание", 3), size: input.size, weight, volume, distanceKm, price, pickupAt, recommendedPrice: quote(distanceKm, volume)},
-    details: {addressFrom: text(input.addressFrom, "адрес отправления"), addressTo: text(input.addressTo, "адрес получения"), recipientName: text(input.recipientName, "получатель", 1, 80), recipientPhone: phone, comment}
+    order: {id: orderId, fromCity: input.fromCity, toCity: input.toCity, itemDescription: text(input.itemDescription, "описание", 3), size: input.size, weight, volume, distanceKm, price, pickupAt, recommendedPrice: distanceSource === "unavailable" ? null : quote(distanceKm, volume), distanceSource, ...(pickupPlace ? {pickupArea: area(pickupPlace.coordinate), dropoffArea: area(dropoffPlace.coordinate)} : {})},
+    details: {addressFrom: text(input.addressFrom, "адрес отправления"), addressTo: text(input.addressTo, "адрес получения"), recipientName: text(input.recipientName, "получатель", 1, 80), recipientPhone: phone, comment, ...(pickupPlace ? {pickupPlace, dropoffPlace} : {}), ...(route ? {route} : {})}
   };
 }
 function authorizeAccept(order, profile, uid) {
@@ -54,4 +66,13 @@ function authorizeTransition(order, uid, target, reason) {
 function participant(order, uid) {
   if (order.senderId !== uid && order.driverId !== uid) throw new DomainError("permission-denied", "Нет доступа к заказу.");
 }
-module.exports = {DomainError, text, number, id, quote, validateOrder, authorizeAccept, authorizeTransition, participant};
+function point(value) {
+  if (!value || typeof value !== "object") fail("Некорректная точка.");
+  return {latitude: number(value.latitude, "широта", -90, 90), longitude: number(value.longitude, "долгота", -180, 180)};
+}
+function place(value) {
+  if (!value || typeof value !== "object") fail("Некорректный адрес.");
+  return {coordinate: point(value.coordinate), label: text(value.label, "адрес", 1, 500)};
+}
+function area(value) { return {latitude: Math.round(value.latitude * 10) / 10, longitude: Math.round(value.longitude * 10) / 10}; }
+module.exports = {DomainError, point, place, area, cities, text, number, id, quote, validateOrder, authorizeAccept, authorizeTransition, participant};

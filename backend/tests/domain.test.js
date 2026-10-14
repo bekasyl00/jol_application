@@ -35,3 +35,15 @@ test("contact and chat authorization", () => {
   assert.throws(() => D.participant({senderId: "s", driverId: "d"}, "x"));
   assert.throws(() => D.text("x".repeat(2001), "message", 1, 2000));
 });
+
+test("map points remain private and marketplace only contains coarse cells", () => {
+ const input = {...valid(), pickupAt: Date.now() + 3600000, pickupPlace: {coordinate: {latitude: 43.2383, longitude: 76.9455}, label: "Private street"}, dropoffPlace: {coordinate: {latitude: 51.1282, longitude: 71.4304}, label: "Private house"}, distanceSource: "unavailable", distanceKm: 0};
+ const result = D.validateOrder(input);
+ assert.deepEqual(result.order.pickupArea, {latitude: 43.2, longitude: 76.9});
+ assert.equal(result.order.recommendedPrice, null);
+ assert.equal(result.order.pickupPlace, undefined);
+ assert.equal(result.details.pickupPlace.label, "Private street");
+ assert.throws(() => D.validateOrder({...input, pickupPlace: {...input.pickupPlace, coordinate: {latitude: 100, longitude: 0}}}));
+ assert.throws(() => D.validateOrder({...input, distanceSource: "manualDemo"}));
+ assert.throws(() => D.validateOrder({...input, distanceSource: "appleMapKit", distanceKm: 100}));
+});

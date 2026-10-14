@@ -25,6 +25,36 @@
 			isa = "PBXBuildFile";
 			fileRef = "EFB734D178228413A9242BCD";
 		};
+		CFFF5D4367EC2C3989280903 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Services/MapServices.swift";
+			sourceTree = "<group>";
+		};
+		468031A18ABB6A9417CAB5C4 = {
+			isa = "PBXBuildFile";
+			fileRef = "CFFF5D4367EC2C3989280903";
+		};
+		699B3A81E4E9D7AF8B476755 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Services/RouteMatchingService.swift";
+			sourceTree = "<group>";
+		};
+		3E8A560B31B83B4195AB0CF6 = {
+			isa = "PBXBuildFile";
+			fileRef = "699B3A81E4E9D7AF8B476755";
+		};
+		21C87863236F03C98E10E80A = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Services/TripStore.swift";
+			sourceTree = "<group>";
+		};
+		0A281CCE7FA3AEEE7C988383 = {
+			isa = "PBXBuildFile";
+			fileRef = "21C87863236F03C98E10E80A";
+		};
 		0EEBF10DA7B64A39D66DD651 = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -34,6 +64,16 @@
 		C95EDC0151DB794FAC0C7C1C = {
 			isa = "PBXBuildFile";
 			fileRef = "0EEBF10DA7B64A39D66DD651";
+		};
+		2D8E17E7BFCEAF0EA33420A1 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Views/MapViews.swift";
+			sourceTree = "<group>";
+		};
+		CC6CBBB282A9011586602508 = {
+			isa = "PBXBuildFile";
+			fileRef = "2D8E17E7BFCEAF0EA33420A1";
 		};
 		79CBD39ABAD312607E46048A = {
 			isa = "PBXFileReference";
@@ -55,6 +95,26 @@
 			isa = "PBXBuildFile";
 			fileRef = "4C2049D4081EAEE59248C48E";
 		};
+		A437778C0CC4C6BEE73B2E62 = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "App/Views/TripsView.swift";
+			sourceTree = "<group>";
+		};
+		9DF9EF50FA203539575FBFFE = {
+			isa = "PBXBuildFile";
+			fileRef = "A437778C0CC4C6BEE73B2E62";
+		};
+		30E7C41FA22B40827EA26D2B = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Sources/ParcelCore/Geography.swift";
+			sourceTree = "<group>";
+		};
+		FAFD5A50CE3818B13BCFFFDD = {
+			isa = "PBXBuildFile";
+			fileRef = "30E7C41FA22B40827EA26D2B";
+		};
 		1EDC437F0340A5B290481599 = {
 			isa = "PBXFileReference";
 			lastKnownFileType = "sourcecode.swift";
@@ -74,6 +134,16 @@
 		86EAF61E24A6C3D2A6DAEC00 = {
 			isa = "PBXBuildFile";
 			fileRef = "80B2DD300CF0E69100E9E9FD";
+		};
+		37820B825BEEA01FECDEAB0C = {
+			isa = "PBXFileReference";
+			lastKnownFileType = "sourcecode.swift";
+			path = "Sources/ParcelCore/Trips.swift";
+			sourceTree = "<group>";
+		};
+		886BE72113E96CFE04EB26B4 = {
+			isa = "PBXBuildFile";
+			fileRef = "37820B825BEEA01FECDEAB0C";
 		};
 		424DD89AC8A76830122E2469 = {
 			isa = "PBXFileReference";
@@ -109,7 +179,7 @@
 		};
 		BCE16DD0260827ECF338C787 = {
 			isa = "PBXGroup";
-			children = ("CB1C9C3D00B0A12C2C67162F", "EFB734D178228413A9242BCD", "0EEBF10DA7B64A39D66DD651", "79CBD39ABAD312607E46048A", "4C2049D4081EAEE59248C48E", "1EDC437F0340A5B290481599", "80B2DD300CF0E69100E9E9FD");
+			children = ("CB1C9C3D00B0A12C2C67162F", "EFB734D178228413A9242BCD", "CFFF5D4367EC2C3989280903", "699B3A81E4E9D7AF8B476755", "21C87863236F03C98E10E80A", "0EEBF10DA7B64A39D66DD651", "2D8E17E7BFCEAF0EA33420A1", "79CBD39ABAD312607E46048A", "4C2049D4081EAEE59248C48E", "A437778C0CC4C6BEE73B2E62", "30E7C41FA22B40827EA26D2B", "1EDC437F0340A5B290481599", "80B2DD300CF0E69100E9E9FD", "37820B825BEEA01FECDEAB0C");
 			name = "Sources";
 			sourceTree = "<group>";
 		};
@@ -195,7 +265,7 @@
 		A1C3CEACCD4F322048E69D2D = {
 			isa = "PBXSourcesBuildPhase";
 			buildActionMask = "2147483647";
-			files = ("9B262C2C5E4E227EAD8AD3E7", "24DFCDB94C20D1EC6CF2DC34", "C95EDC0151DB794FAC0C7C1C", "B83A4A1F6D748C7244F64F08", "07166ECB5AFC4450610A2790", "B84354A0872F44711DF19027", "86EAF61E24A6C3D2A6DAEC00");
+			files = ("9B262C2C5E4E227EAD8AD3E7", "24DFCDB94C20D1EC6CF2DC34", "468031A18ABB6A9417CAB5C4", "3E8A560B31B83B4195AB0CF6", "0A281CCE7FA3AEEE7C988383", "C95EDC0151DB794FAC0C7C1C", "CC6CBBB282A9011586602508", "B83A4A1F6D748C7244F64F08", "07166ECB5AFC4450610A2790", "9DF9EF50FA203539575FBFFE", "FAFD5A50CE3818B13BCFFFDD", "B84354A0872F44711DF19027", "86EAF61E24A6C3D2A6DAEC00", "886BE72113E96CFE04EB26B4");
 			runOnlyForDeploymentPostprocessing = "0";
 		};
 		326A678791C89F5FAABDFBFA = {

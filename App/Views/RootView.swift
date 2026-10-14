@@ -20,6 +20,7 @@ struct RootView: View {
                 TabView {
                     OrdersView().tabItem { Label(store.profile?.role == .courier ? "Заказы по пути" : "Отправления", systemImage: "shippingbox") }
                     if store.profile?.role == .sender && !store.deletionPending { CreateDeliveryView().tabItem { Label("Отправить", systemImage: "plus.circle.fill") } }
+                    if !store.deletionPending { TripsView().tabItem { Label(store.profile?.role == .sender ? "Перевозчики" : "Поездки", systemImage: "car") } }
                     ProfileView().tabItem { Label("Профиль", systemImage: "person.crop.circle") }
                 }
             } else { AuthView() }

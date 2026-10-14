@@ -39,6 +39,18 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+    match /trips/{id} {
+      allow read: if active() && (resource.data.driverId == request.auth.uid || (get(userPath()).data.role == 'sender' && resource.data.status == 'published'));
+      allow write: if false;
+      match /private/{document} {
+        allow read: if active() && get(/databases/$(database)/documents/trips/$(id)).data.driverId == request.auth.uid;
+        allow write: if false;
+      }
+    }
+    match /proposals/{id} {
+      allow read: if active() && (resource.data.senderId == request.auth.uid || resource.data.driverId == request.auth.uid);
+      allow write: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

@@ -86,3 +86,38 @@ test("callable transactions: simultaneous claims have one winner; deletion erase
   assert.equal((await getDoc(doc(c.firestore(), `deliveries/${input.id}/private/details`))).exists(), false);
  });
 });
+
+test("trip proposals reserve multiple parcels atomically, protect addresses, and release cancellations", async () => {
+ const functions = require("../functions/index");
+ const now = Date.now() + 7200000;
+ await env.withSecurityRulesDisabled(async c => {
+   await setDoc(doc(c.firestore(), "users/trip-sender"), user("trip-sender"));
+   await setDoc(doc(c.firestore(), "users/trip-driver"), {...user("trip-driver", "courier"), capacityKg: 25});
+ });
+ const input = {id: "trip-multi", fromCity: "Алматы", toCity: "Астана", origin: {coordinate: {latitude: 43.2383, longitude: 76.9455}, label: "Private origin"}, destination: {coordinate: {latitude: 51.1282, longitude: 71.4304}, label: "Private destination"}, departureAt: now, capacityKg: 25, maxParcels: 5, pickupWindowMinutes: 120, maxDetourKm: 20, maxDetourMinutes: 30};
+ await functions.publishTrip.run({auth: {uid: "trip-driver"}, data: input});
+ for (let i = 0; i < 3; i++) {
+   await functions.createDelivery.run({auth: {uid: "trip-sender"}, data: {id: `multi-${i}`, fromCity: "Алматы", toCity: "Астана", itemDescription: "Книги", size: "box", weight: 10, volume: 0.06, distanceKm: 100, price: 2100, pickupAt: now, addressFrom: "Private pickup", addressTo: "Private dropoff", recipientName: "Алия", recipientPhone: "+77011234567", comment: ""}});
+   await functions.createProposal.run({auth: {uid: "trip-sender"}, data: {tripId: input.id, deliveryId: `multi-${i}`}});
+ }
+ const senderDB = env.authenticatedContext("trip-sender").firestore();
+ await assertSucceeds(getDoc(doc(senderDB, "trips/trip-multi")));
+ await assertFails(getDoc(doc(senderDB, "trips/trip-multi/private/details")));
+ await assertFails(getDoc(doc(env.authenticatedContext("outsider").firestore(), "proposals/multi-0_trip-multi")));
+ await assertFails(setDoc(doc(senderDB, "trips/spoof"), input));
+ let version = (await getDoc(doc(senderDB, "trips/trip-multi"))).data().version;
+ const race = await Promise.allSettled([0, 1].map(i => functions.respondProposal.run({auth: {uid: "trip-driver"}, data: {id: `multi-${i}_trip-multi`, action: "accepted", version}})));
+ assert.equal(race.filter(r => r.status === "fulfilled").length, 1);
+ const loser = race[0].status === "fulfilled" ? 1 : 0;
+ version = (await getDoc(doc(senderDB, "trips/trip-multi"))).data().version;
+ await functions.respondProposal.run({auth: {uid: "trip-driver"}, data: {id: `multi-${loser}_trip-multi`, action: "accepted", version}});
+ const filled = (await getDoc(doc(senderDB, "trips/trip-multi"))).data();
+ assert.equal(filled.acceptedCount, 2); assert.equal(filled.reservedKg, 20);
+ await assert.rejects(functions.respondProposal.run({auth: {uid: "trip-driver"}, data: {id: "multi-2_trip-multi", action: "accepted", version: filled.version}}));
+ await functions.transitionDelivery.run({auth: {uid: "trip-sender"}, data: {id: "multi-0", status: "cancelled", reason: "Передумал"}});
+ const freed = (await getDoc(doc(senderDB, "trips/trip-multi"))).data();
+ assert.equal(freed.reservedKg, 10);
+ await functions.respondProposal.run({auth: {uid: "trip-driver"}, data: {id: "multi-2_trip-multi", action: "accepted", version: freed.version}});
+ await functions.closeTrip.run({auth: {uid: "trip-driver"}, data: {id: input.id}});
+ await assertFails(getDoc(doc(senderDB, "trips/trip-multi")));
+});

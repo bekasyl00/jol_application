@@ -62,7 +62,7 @@ exports.createDelivery = callable(async (uid, data) => {
       return; // Retry after an unknown network outcome returns the original order.
     }
     tx.create(ref, {...order, pickupAt: Timestamp.fromMillis(order.pickupAt), senderId: uid, driverId: null, status: "waiting", photoPath, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp()});
-    tx.create(ref.collection("private").doc("details"), details);
+    tx.create(ref.collection("private").doc("details"), {...details, ...(details.route ? {route: {...details.route, calculatedAt: Timestamp.fromMillis(details.route.calculatedAt)}} : {})});
   });
   return {id: ref.id};
 });
@@ -71,6 +71,8 @@ exports.acceptDelivery = callable(async (uid, data) => {
   await db.runTransaction(async tx => {
     const p = await profile(uid, tx); const d = existing(await tx.get(ref));
     D.authorizeAccept(d, p, uid);
+    const proposals = await tx.get(db.collection("proposals").where("deliveryId", "==", ref.id).where("status", "==", "pending"));
+    proposals.docs.forEach(s => tx.update(s.ref, {status: "expired"}));
     tx.update(ref, {driverId: uid, status: "accepted", updatedAt: FieldValue.serverTimestamp()});
   });
   return {ok: true};
@@ -80,6 +82,19 @@ exports.transitionDelivery = callable(async (uid, data) => {
   await db.runTransaction(async tx => {
     await profile(uid, tx); const d = existing(await tx.get(ref));
     const patch = D.authorizeTransition(d, uid, data.status, data.reason);
+    let trip, tripRef, tripDetails, pending;
+    if (data.status === "cancelled") {
+      pending = await tx.get(db.collection("proposals").where("deliveryId", "==", ref.id).where("status", "==", "pending"));
+      if (d.tripId) {
+        tripRef = db.doc(`trips/${d.tripId}`); trip = existing(await tx.get(tripRef));
+        tripDetails = existing(await tx.get(tripRef.collection("private").doc("details")));
+      }
+    }
+    if (trip) {
+      tx.update(tripRef, {reservedKg: Math.max(0, trip.reservedKg - d.weight), acceptedCount: Math.max(0, trip.acceptedCount - 1), version: trip.version + 1});
+      tx.update(tripRef.collection("private").doc("details"), {deliveryIds: tripDetails.deliveryIds.filter(id => id !== d.id)});
+    }
+    pending?.docs.forEach(s => tx.update(s.ref, {status: "expired"}));
     tx.update(ref, {...patch, updatedAt: FieldValue.serverTimestamp()});
   });
   return {ok: true};
@@ -132,6 +147,10 @@ exports.deleteAccount = callable(async (uid, data, auth) => {
     if (snap.data().photoPath) await getStorage().bucket().file(snap.data().photoPath).delete({ignoreNotFound: true});
     await db.recursiveDelete(snap.ref); // Removes order contacts, recipient data, chat and review.
   }
+  const ownedTrips = await db.collection("trips").where("driverId", "==", uid).get();
+  for (const trip of ownedTrips.docs) await db.recursiveDelete(trip.ref);
+  const proposalGroups = await Promise.all(["senderId", "driverId"].map(field => db.collection("proposals").where(field, "==", uid).get()));
+  for (const group of proposalGroups) for (const proposal of group.docs) await proposal.ref.delete();
   await getStorage().bucket().deleteFiles({prefix: `parcels/${uid}/`});
   // Keep a PII-free tombstone: cached auth tokens cannot recreate a deleted profile.
   await userRef.set({id: uid, deleting: true});
@@ -164,3 +183,5 @@ exports.messageNotification = onDocumentCreated({region: options.region, documen
   const d = snap.data(); const m = event.data.data();
   await notify(m.fromUser === d.senderId ? d.driverId : d.senderId, "Новое сообщение", "У вас новое сообщение по доставке.", event.params.id);
 });
+
+Object.assign(exports, require("./trips").handlers({db, callable, profile, existing}));

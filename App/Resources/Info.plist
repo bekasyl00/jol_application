@@ -13,5 +13,6 @@
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 <key>UIBackgroundModes</key><array><string>remote-notification</string></array>
+<key>NSLocationWhenInUseUsageDescription</key><string>Jol использует вашу позицию, чтобы выбрать место передачи и показывать отправителю движение во время доставки.</string>
 <key>LSRequiresIPhoneOS</key><true/>
 </dict></plist>

@@ -79,6 +79,7 @@ struct DeliveryDetailView: View {
                         Text("После принятия откроются адреса и контакты. Оплата по договорённости, комиссия 0%.").font(.caption).foregroundStyle(.secondary)
                     }
                     if let details {
+                        DeliveryRouteView(details: details)
                         VStack(alignment: .leading, spacing: 12) {
                             Label(details.addressFrom, systemImage: "circle.circle"); Label(details.addressTo, systemImage: "mappin.circle")
                             Text("Получатель: \(details.recipientName)")

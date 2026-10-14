@@ -18,7 +18,12 @@ import OSLog
     var demo = false
     var authReady = false
     var deletionPending = false
-    private var local: LocalRepository?
+    var local: LocalRepository?
+    var trips: [CarrierTrip] = []
+    var proposals: [TripProposal] = []
+    var tripListeners: [ListenerRegistration] = []
+    var catalogCursor: DocumentSnapshot?
+    var catalogHasMore = false
     private static let storageLog = Logger(subsystem: "kz.jol.parcel", category: "DemoStorage")
     private var listeners: [ListenerRegistration] = []
     private var groups: [String: [Delivery]] = [:]
@@ -94,16 +99,17 @@ import OSLog
         try Firestore.firestore().collection("users").document(user.uid).setData(from: saved)
         profile = saved; listen(); await syncToken()
     }
-    func stopListeners() { listeners.forEach { $0.remove() }; listeners = []; groups = [:] }
+    func stopListeners() { listeners.forEach { $0.remove() }; listeners = []; groups = [:]; tripListeners.forEach { $0.remove() }; tripListeners = []; trips = []; proposals = []; catalogCursor = nil }
     func listen() {
         stopListeners(); guard let p = profile else { return }
+        listenTrips()
         let collection = Firestore.firestore().collection("deliveries")
         var queries: [(String, Query)] = [("sender", collection.whereField("senderId", isEqualTo: p.id)), ("driver", collection.whereField("driverId", isEqualTo: p.id))]
         if p.role == .courier { queries.append(("market", collection.whereField("status", isEqualTo: "waiting"))) }
         for (key, query) in queries {
             listeners.append(query.addSnapshotListener { [weak self] snapshot, error in
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, !self.demo, self.profile?.id == p.id else { return }
                     if error != nil { self.error = "Не удалось обновить список доставок."; return }
                     do {
                         self.groups[key] = try snapshot?.documents.map { try $0.data(as: Delivery.self) } ?? []
@@ -115,7 +121,10 @@ import OSLog
             })
         }
     }
-    func refresh() async { if demo, let p = profile, let local { orders = await local.orders(for: p) } }
+    func refresh() async {
+        if demo, let p = profile, let local { orders = await local.orders(for: p); trips = await local.trips(for: p); proposals = await local.proposals(for: p) }
+        else if profile?.role == .sender { do { try await loadCatalog(reset: true) } catch { self.error = error.localizedDescription } }
+    }
     func call(_ name: String, data: [String: Any]) async throws -> Any {
         try await backend.httpsCallable(name).call(data).data
     }
@@ -135,6 +144,10 @@ import OSLog
         }
         var payload: [String: Any] = ["id": order.id, "fromCity": order.fromCity, "toCity": order.toCity, "itemDescription": order.itemDescription, "size": order.size.rawValue, "weight": order.weight, "volume": order.volume, "distanceKm": order.distanceKm, "price": order.price, "pickupAt": order.pickupAt.timeIntervalSince1970 * 1000, "addressFrom": details.addressFrom, "addressTo": details.addressTo, "recipientName": details.recipientName, "recipientPhone": details.recipientPhone, "comment": details.comment]
         if let path = order.photoPath { payload["photoPath"] = path }
+        if let place = details.pickupPlace { payload["pickupPlace"] = place.payload }
+        if let place = details.dropoffPlace { payload["dropoffPlace"] = place.payload }
+        if let source = order.distanceSource { payload["distanceSource"] = source }
+        if let route = details.route { payload["route"] = ["distanceMeters": route.distanceMeters, "durationSeconds": route.durationSeconds, "calculatedAt": route.calculatedAt.timeIntervalSince1970 * 1000] }
         do { _ = try await call("createDelivery", data: payload) }
         catch { if let path = order.photoPath { try? await Storage.storage().reference(withPath: path).delete() }; throw error }
     }
@@ -210,18 +223,6 @@ import OSLog
     }
 }
 
-@MainActor enum RouteService {
-    static func distance(from: String, to: String) async throws -> Double {
-        guard from != to else { throw ParcelError.invalid("Выберите разные города.") }
-        let geocoder = CLGeocoder()
-        guard let start = try await geocoder.geocodeAddressString("\(from), Казахстан").first?.location,
-              let end = try await geocoder.geocodeAddressString("\(to), Казахстан").first?.location else { throw ParcelError.invalid("Не удалось найти город.") }
-        let request = MKDirections.Request(); request.source = MKMapItem(placemark: MKPlacemark(coordinate: start.coordinate)); request.destination = MKMapItem(placemark: MKPlacemark(coordinate: end.coordinate)); request.transportType = .automobile
-        let response = try await MKDirections(request: request).calculate()
-        guard let route = response.routes.first else { throw ParcelError.invalid("Автомобильный маршрут недоступен.") }
-        return (route.distance / 1000).rounded(.up)
-    }
-}
 
 extension AppStore {
     func photoData(_ path: String) async throws -> Data { try await Storage.storage().reference(withPath: path).data(maxSize: 5 * 1024 * 1024) }
