@@ -320,6 +320,18 @@
 			files = ("C9BAD785196607A203C80396", "A1FE59B8CD7198E92E4EE5AC");
 			runOnlyForDeploymentPostprocessing = "0";
 		};
+		09116CEAEBB202A6AB99C97F = {
+			isa = "PBXShellScriptBuildPhase";
+			buildActionMask = "2147483647";
+			files = ();
+			name = "Optional local Firebase configuration";
+			inputPaths = ("$(SRCROOT)/App/Resources");
+			outputPaths = ("$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist");
+			runOnlyForDeploymentPostprocessing = "0";
+			shellPath = "/bin/sh";
+			shellScript = "set -eu\nconfig_source=\"$SRCROOT/App/Resources/GoogleService-Info.plist\"\nconfig_target=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist\"\nif [ \"$CONFIGURATION\" != \"Demo\" ] && [ -f \"$config_source\" ]; then\n    cp \"$config_source\" \"$config_target\"\nelse\n    rm -f \"$config_target\"\nfi\n";
+			alwaysOutOfDate = "1";
+		};
 		AA60E62D3E7BAEF305ADABEA = {
 			isa = "XCBuildConfiguration";
 			name = "Debug";
@@ -431,7 +443,7 @@
 		0E8A3AD980EC179856012B7E = {
 			isa = "PBXNativeTarget";
 			buildConfigurationList = "976B52545947CA66FD9EF2A4";
-			buildPhases = ("A1C3CEACCD4F322048E69D2D", "326A678791C89F5FAABDFBFA", "FF4A15EEA61D4A3B097C1C27");
+			buildPhases = ("A1C3CEACCD4F322048E69D2D", "326A678791C89F5FAABDFBFA", "FF4A15EEA61D4A3B097C1C27", "09116CEAEBB202A6AB99C97F");
 			buildRules = ();
 			dependencies = ();
 			name = "JolParcel";

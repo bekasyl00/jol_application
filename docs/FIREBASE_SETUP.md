@@ -8,7 +8,7 @@
 6. Для уведомлений добавьте capability Push Notifications, заполните Apple Development Team и загрузите APNs .p8 key / Team ID / Key ID в Firebase Cloud Messaging. Подпись development/production и App Attest environment заданы отдельно для Debug/Release. Проверьте на физическом iPhone. В профиле пользователь запрашивает разрешение на push.
 7. Для разработки установите Node 22 и Java 21+. Выполните `npm ci` и `npm ci --prefix backend/functions`.
 8. Запустите локальные проверки `npm run test:rules`. Используется `demo-jol`; тесты не обращаются к рабочей базе.
-9. После подготовки собственного проекта: `npx firebase login`, затем `npx firebase deploy --project YOUR_PROJECT_ID --only firestore,storage,functions`. Здесь `YOUR_PROJECT_ID` нужно заменить. Команда не выполнялась агентом.
+9. После подготовки собственного проекта: `npx firebase login`, затем `npx firebase deploy --project YOUR_PROJECT_ID --only firestore,storage,functions`. Здесь `YOUR_PROJECT_ID` нужно заменить. Для `jolparcel-kz-2026` правила Firestore уже развёрнуты; Functions требуют Blaze, Storage ещё не создан. См. CLOUD_SETUP_STATUS.md.
 10. При необходимости измените регион `europe-west1` во всех серверных модулях с `region` и `App/Services/AppStore.swift`. Регион взят как технический пример, не как решение правовых требований.
 
 ## Схема хранения

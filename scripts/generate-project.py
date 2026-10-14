@@ -21,10 +21,6 @@ for path in sorted(list((root/'App').rglob('*.swift')) + list((root/'Sources/Par
 for relative, kind in [('App/Resources/Assets.xcassets', 'folder.assetcatalog'), ('App/Resources/PrivacyInfo.xcprivacy', 'text.xml')]:
     ref=add('file:'+relative, 'PBXFileReference', lastKnownFileType=kind, path=relative, sourceTree='<group>')
     resources.append(ref); resource_build.append(add('build:'+relative, 'PBXBuildFile', fileRef=ref))
-if (root/'App/Resources/GoogleService-Info.plist').exists():
-    relative='App/Resources/GoogleService-Info.plist'
-    ref=add('file:'+relative, 'PBXFileReference', lastKnownFileType='text.plist.xml', path=relative, sourceTree='<group>')
-    resources.append(ref); resource_build.append(add('build:'+relative, 'PBXBuildFile', fileRef=ref))
 product=add('product', 'PBXFileReference', explicitFileType='wrapper.application', path='JolParcel.app', sourceTree='BUILT_PRODUCTS_DIR')
 products=add('products', 'PBXGroup', children=[product], name='Products', sourceTree='<group>')
 source_group=add('sources', 'PBXGroup', children=sources, name='Sources', sourceTree='<group>')
@@ -37,6 +33,18 @@ for product_name in ['FirebaseAuth','FirebaseFirestore','FirebaseStorage','Fireb
     dep=add('dependency:'+product_name, 'XCSwiftPackageProductDependency', package=package, productName=product_name)
     deps.append(dep); frameworks.append(add('framework:'+product_name,'PBXBuildFile', productRef=dep))
 phases=[add('source-phase','PBXSourcesBuildPhase',buildActionMask='2147483647',files=source_build,runOnlyForDeploymentPostprocessing='0'),add('framework-phase','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=frameworks,runOnlyForDeploymentPostprocessing='0'),add('resource-phase','PBXResourcesBuildPhase',buildActionMask='2147483647',files=resource_build,runOnlyForDeploymentPostprocessing='0')]
+# Keep the shared project identical on CI and on machines with private Firebase config.
+# The optional file is copied only into online builds, never into the isolated demo.
+config_script = r'''set -eu
+config_source="$SRCROOT/App/Resources/GoogleService-Info.plist"
+config_target="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist"
+if [ "$CONFIGURATION" != "Demo" ] && [ -f "$config_source" ]; then
+    cp "$config_source" "$config_target"
+else
+    rm -f "$config_target"
+fi
+'''
+phases.append(add('firebase-config-phase', 'PBXShellScriptBuildPhase', buildActionMask='2147483647', files=[], name='Optional local Firebase configuration', inputPaths=['$(SRCROOT)/App/Resources'], outputPaths=['$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist'], runOnlyForDeploymentPostprocessing='0', shellPath='/bin/sh', shellScript=config_script, alwaysOutOfDate='1'))
 project_configs=[]; target_configs=[]
 for configuration in ['Debug','Release','Demo']:
     settings={'IPHONEOS_DEPLOYMENT_TARGET':'17.0','SDKROOT':'iphoneos','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','ONLY_ACTIVE_ARCH':'YES' if configuration!='Release' else 'NO','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if configuration!='Release' else '-O','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG JOL_DEMO_ONLY' if configuration=='Demo' else ('DEBUG' if configuration=='Debug' else '')}
