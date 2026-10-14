@@ -38,7 +38,7 @@ phases=[add('source-phase','PBXSourcesBuildPhase',buildActionMask='2147483647',f
 config_script = r'''set -eu
 config_source="$SRCROOT/App/Resources/GoogleService-Info.plist"
 config_target="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist"
-if [ "$CONFIGURATION" != "Demo" ] && [ "$CONFIGURATION" != "Local" ] && [ -f "$config_source" ]; then
+if [ "$CONFIGURATION" != "Demo" ] && [ "$CONFIGURATION" != "DebugLocal" ] && [ -f "$config_source" ]; then
     cp "$config_source" "$config_target"
 else
     rm -f "$config_target"
@@ -46,14 +46,16 @@ fi
 '''
 phases.append(add('firebase-config-phase', 'PBXShellScriptBuildPhase', buildActionMask='2147483647', files=[], name='Optional local Firebase configuration', inputPaths=['$(SRCROOT)/App/Resources'], outputPaths=['$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist'], runOnlyForDeploymentPostprocessing='0', shellPath='/bin/sh', shellScript=config_script, alwaysOutOfDate='1'))
 project_configs=[]; target_configs=[]
-for configuration in ['Debug','Release','Demo','Local']:
-    conditions = {'Debug': 'DEBUG', 'Demo': 'DEBUG JOL_DEMO_ONLY', 'Local': 'DEBUG JOL_LOCAL_SERVER', 'Release': ''}
+# Swift package dependencies recognize custom debug configurations by their name.
+# Keep "Debug" here so Firebase Functions exposes its LAN emulator debugging option.
+for configuration in ['Debug','Release','Demo','DebugLocal']:
+    conditions = {'Debug': 'DEBUG', 'Demo': 'DEBUG JOL_DEMO_ONLY', 'DebugLocal': 'DEBUG JOL_LOCAL_SERVER', 'Release': ''}
     settings={'IPHONEOS_DEPLOYMENT_TARGET':'17.0','SDKROOT':'iphoneos','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','ONLY_ACTIVE_ARCH':'YES' if configuration!='Release' else 'NO','SWIFT_OPTIMIZATION_LEVEL':'-Onone' if configuration!='Release' else '-O','SWIFT_ACTIVE_COMPILATION_CONDITIONS':conditions[configuration]}
     project_configs.append(add('project-config:'+configuration,'XCBuildConfiguration',name=configuration,buildSettings=settings))
     target_settings={'PRODUCT_BUNDLE_IDENTIFIER':'kz.jol.parcel','PRODUCT_NAME':'$(TARGET_NAME)','GENERATE_INFOPLIST_FILE':'NO','INFOPLIST_FILE':'App/Resources/Info.plist','CODE_SIGN_ENTITLEMENTS':'App/Resources/JolParcel.entitlements','CODE_SIGN_STYLE':'Automatic','TARGETED_DEVICE_FAMILY':'1','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon','LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks'],'SUPPORTS_MACCATALYST':'NO','APS_ENVIRONMENT':'development' if configuration!='Release' else 'production','APP_ATTEST_ENVIRONMENT':'development' if configuration!='Release' else 'production'}
     if configuration == 'Demo':
         target_settings.update(PRODUCT_BUNDLE_IDENTIFIER='kz.jol.parcel.demo', CODE_SIGN_ENTITLEMENTS='App/Resources/Demo.entitlements')
-    if configuration == 'Local':
+    if configuration == 'DebugLocal':
         target_settings.update(PRODUCT_BUNDLE_IDENTIFIER='kz.jol.parcel.local', CODE_SIGN_ENTITLEMENTS='App/Resources/Demo.entitlements', INFOPLIST_FILE='App/Resources/LocalInfo.plist')
     target_configs.append(add('target-config:'+configuration,'XCBuildConfiguration',name=configuration,baseConfigurationReference=signing_config,buildSettings=target_settings))
 pc=add('project-configs','XCConfigurationList',buildConfigurations=project_configs,defaultConfigurationIsVisible='0',defaultConfigurationName='Release')
@@ -73,7 +75,7 @@ scheme_xml=f'''<?xml version="1.0" encoding="UTF-8"?>
 if not (scheme/'JolParcel.xcscheme').exists():
     (scheme/'JolParcel.xcscheme').write_text(scheme_xml)
 (scheme/'JolParcelDemo.xcscheme').write_text(scheme_xml.replace('buildConfiguration="Debug"', 'buildConfiguration="Demo"').replace('buildConfiguration="Release"', 'buildConfiguration="Demo"').replace('<LaunchAction', '<TestAction buildConfiguration="Demo" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES" shouldAutocreateTestPlan="YES"/><LaunchAction'))
-(scheme/'JolParcelLocal.xcscheme').write_text(scheme_xml.replace('buildConfiguration="Debug"', 'buildConfiguration="Local"').replace('buildConfiguration="Release"', 'buildConfiguration="Local"'))
+(scheme/'JolParcelLocal.xcscheme').write_text(scheme_xml.replace('buildConfiguration="Debug"', 'buildConfiguration="DebugLocal"').replace('buildConfiguration="Release"', 'buildConfiguration="DebugLocal"'))
 # Local HTTP is allowed only in the separately signed development app.
 local_info = plistlib.loads((root/'App/Resources/Info.plist').read_bytes())
 local_info.update(CFBundleDisplayName='Jol Local', JOL_EMULATOR_HOST='$(JOL_EMULATOR_HOST)',

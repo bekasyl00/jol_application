@@ -41,7 +41,11 @@ enum LocalBackend {
         settings.cacheSettings = MemoryCacheSettings()
         firestore.settings = settings
         firestore.useEmulator(withHost: host, port: 8080)
-        Functions.functions(region: "europe-west1").useEmulator(withHost: host, port: 5001)
+        let functions = Functions.functions(region: "europe-west1")
+        functions.useEmulator(withHost: host, port: 5001)
+        // Firebase's debug-only opt-in for physical devices on a trusted LAN.
+        // This entire setup is compiled only for Local, with a fictitious project and validated host.
+        functions.allowInsecureTokenAttachment = true
         Storage.storage().useEmulator(withHost: host, port: 9199)
     }
 

@@ -369,7 +369,7 @@
 			outputPaths = ("$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist");
 			runOnlyForDeploymentPostprocessing = "0";
 			shellPath = "/bin/sh";
-			shellScript = "set -eu\nconfig_source=\"$SRCROOT/App/Resources/GoogleService-Info.plist\"\nconfig_target=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist\"\nif [ \"$CONFIGURATION\" != \"Demo\" ] && [ \"$CONFIGURATION\" != \"Local\" ] && [ -f \"$config_source\" ]; then\n    cp \"$config_source\" \"$config_target\"\nelse\n    rm -f \"$config_target\"\nfi\n";
+			shellScript = "set -eu\nconfig_source=\"$SRCROOT/App/Resources/GoogleService-Info.plist\"\nconfig_target=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist\"\nif [ \"$CONFIGURATION\" != \"Demo\" ] && [ \"$CONFIGURATION\" != \"DebugLocal\" ] && [ -f \"$config_source\" ]; then\n    cp \"$config_source\" \"$config_target\"\nelse\n    rm -f \"$config_target\"\nfi\n";
 			alwaysOutOfDate = "1";
 		};
 		AA60E62D3E7BAEF305ADABEA = {
@@ -468,9 +468,9 @@
 				APP_ATTEST_ENVIRONMENT = "development";
 			};
 		};
-		2D117B116A9935F89BA13704 = {
+		7ACB91422D74603B1E7BDE39 = {
 			isa = "XCBuildConfiguration";
-			name = "Local";
+			name = "DebugLocal";
 			buildSettings = {
 				IPHONEOS_DEPLOYMENT_TARGET = "17.0";
 				SDKROOT = "iphoneos";
@@ -481,9 +481,9 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG JOL_LOCAL_SERVER";
 			};
 		};
-		C530EAD5CE4E720CD41917EE = {
+		E27D691AD70E98B72962CB05 = {
 			isa = "XCBuildConfiguration";
-			name = "Local";
+			name = "DebugLocal";
 			baseConfigurationReference = "78548ADD28CC7B5EA2D67C47";
 			buildSettings = {
 				PRODUCT_BUNDLE_IDENTIFIER = "kz.jol.parcel.local";
@@ -502,13 +502,13 @@
 		};
 		640DC9EFD529235A8D9E2727 = {
 			isa = "XCConfigurationList";
-			buildConfigurations = ("AA60E62D3E7BAEF305ADABEA", "3D553B551D2688E2E7A15153", "BB2D3DE8296E1E7A1C6CF45E", "2D117B116A9935F89BA13704");
+			buildConfigurations = ("AA60E62D3E7BAEF305ADABEA", "3D553B551D2688E2E7A15153", "BB2D3DE8296E1E7A1C6CF45E", "7ACB91422D74603B1E7BDE39");
 			defaultConfigurationIsVisible = "0";
 			defaultConfigurationName = "Release";
 		};
 		976B52545947CA66FD9EF2A4 = {
 			isa = "XCConfigurationList";
-			buildConfigurations = ("89679AD72EB8C11CFB977C17", "DB94307ECB9D84D73F3251E3", "508D47E78FADDA5A53394AB7", "C530EAD5CE4E720CD41917EE");
+			buildConfigurations = ("89679AD72EB8C11CFB977C17", "DB94307ECB9D84D73F3251E3", "508D47E78FADDA5A53394AB7", "E27D691AD70E98B72962CB05");
 			defaultConfigurationIsVisible = "0";
 			defaultConfigurationName = "Release";
 		};

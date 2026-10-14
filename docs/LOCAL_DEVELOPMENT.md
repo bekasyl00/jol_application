@@ -50,8 +50,8 @@ swift test
 
 `test:local` запускает отдельный временный набор эмуляторов на портах 9299/8280/5201/9399, без импорта пользовательских данных. Проверяет HTTP-транспорт регистрации, парольный вход, две принятые посылки, приватный GPS и отзыв старых сессий после восстановления пароля. `test:rules` использует стандартные порты: выполняйте его до запуска постоянного сервера или после корректной остановки.
 
-Схема `JolParcelLocal` использует Bundle ID `kz.jol.parcel.local`, отдельный Info.plist, пустые entitlements и условие компиляции `JOL_LOCAL_SERVER`. Реальный `GoogleService-Info.plist` не копируется в Local или Demo. Основная схема `JolParcel` и Release сохраняют облачные настройки; `JolParcelDemo` хранит автономные данные только на устройстве.
+Схема `JolParcelLocal` использует конфигурацию `DebugLocal`, Bundle ID `kz.jol.parcel.local`, отдельный Info.plist, пустые entitlements и условие компиляции `JOL_LOCAL_SERVER`. Слово `Debug` в имени конфигурации необходимо для отладочных API зависимостей Swift Package Manager. Реальный `GoogleService-Info.plist` не копируется в Local или Demo. Основная схема `JolParcel` и Release сохраняют облачные настройки; `JolParcelDemo` хранит автономные данные только на устройстве.
 
-Сервер слушает только выбранный частный IPv4-адрес; панель, служебный hub и внутренние сервисы привязаны к loopback. Хост iOS проверяется по списку частных диапазонов. Перехода на облако при недоступном Mac нет.
+Сервер слушает только выбранный частный IPv4-адрес; панель, служебный hub и внутренние сервисы привязаны к loopback. Хост iOS проверяется по списку частных диапазонов. Только в Local включён отладочный флаг Firebase Functions `allowInsecureTokenAttachment`: он позволяет передать тестовую сессию на Mac по HTTP. В облачной сборке эта настройка отсутствует. Перехода на облако при недоступном Mac нет.
 
 Официальная документация: [Authentication emulator](https://firebase.google.com/docs/emulator-suite/connect_auth), [Functions emulator](https://firebase.google.com/docs/emulator-suite/connect_functions).
