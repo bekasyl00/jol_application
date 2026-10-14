@@ -5,6 +5,7 @@ const {getFirestore, Timestamp, FieldValue} = require("firebase-admin/firestore"
 const {getAuth} = require("firebase-admin/auth");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const D = require("./domain");
+const {isLocalSuite} = require("./runtime");
 const derive = promisify(scrypt);
 const cost = {N: 131072, r: 8, p: 1, maxmem: 192 * 1024 * 1024};
 const hashKey = value => createHash("sha256").update(value).digest("hex");
@@ -60,7 +61,7 @@ async function quota(request, scope) {
   });
 }
 function endpoint(scope, handler) {
-  return onCall({region: "europe-west1", enforceAppCheck: true, memory: "512MiB", concurrency: 2, maxInstances: 5, timeoutSeconds: 60}, async request => {
+  return onCall({region: "europe-west1", enforceAppCheck: !isLocalSuite(), memory: "512MiB", concurrency: 2, maxInstances: 5, timeoutSeconds: 60}, async request => {
     try { await quota(request, scope); return await handler(request); }
     catch (error) {
       if (error instanceof HttpsError) throw error;

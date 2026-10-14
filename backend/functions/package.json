@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test": "node --test ../tests/*.test.js",
-    "check": "node --check index.js && node --check domain.js && node --check trips.js && node --check auth.js && node --check photos.js && node --check tracking.js && node --check cleanup.js"
+    "check": "node --check index.js && node --check domain.js && node --check trips.js && node --check auth.js && node --check photos.js && node --check tracking.js && node --check cleanup.js && node --check runtime.js"
   },
   "dependencies": {
     "firebase-admin": "14.5.0",

@@ -2,6 +2,8 @@
   "name": "jol-development",
   "private": true,
   "scripts": {
+    "dev:local": "python3 scripts/local-server.py",
+    "test:local": "python3 scripts/local-server.py --test",
     "test": "node --test backend/tests/domain.test.js backend/tests/auth.test.js",
     "test:rules": "firebase emulators:exec --project demo-jol --only auth,firestore,storage 'node --test backend/tests/rules.test.js'",
     "test:core": "bash scripts/test-core.sh"

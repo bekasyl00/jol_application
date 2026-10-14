@@ -19,3 +19,5 @@ DerivedData/
 credentials*.json
 .swiftpm/
 App/Resources/LocalSigning.xcconfig
+.local-emulators/
+.local-emulators-*.json

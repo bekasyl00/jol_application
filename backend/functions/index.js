@@ -4,15 +4,26 @@ const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore"
 const {getAuth} = require("firebase-admin/auth");
 const {getMessaging} = require("firebase-admin/messaging");
 const {getStorage} = require("firebase-admin/storage");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentUpdated, onDocumentCreated} = require("firebase-functions/v2/firestore");
 const D = require("./domain");
 const A = require("./auth");
+const {isLocalSuite} = require("./runtime");
 const {AsyncLocalStorage} = require("node:async_hooks");
 const requestContext = new AsyncLocalStorage();
 initializeApp(process.env.FIRESTORE_EMULATOR_HOST ? {projectId: process.env.GCLOUD_PROJECT || "demo-jol", storageBucket: "demo-jol.appspot.com"} : undefined);
 const db = getFirestore();
-const options = {region: "europe-west1", enforceAppCheck: true, timeoutSeconds: 540};
+const options = {region: "europe-west1", enforceAppCheck: !isLocalSuite(), timeoutSeconds: 540};
+// This endpoint is discovered only by the local Functions runtime, never deployed.
+if (process.env.FUNCTIONS_EMULATOR === "true") {
+  exports.localHealth = onRequest({region: options.region, timeoutSeconds: 10}, async (_req, res) => {
+    if (!isLocalSuite()) { res.sendStatus(503); return; }
+    try {
+      await Promise.all([db.doc("_localHealth/connectivity").get(), getAuth().listUsers(1), getStorage().bucket().getFiles({maxResults: 1})]);
+      res.json({project: "demo-jol"});
+    } catch { res.sendStatus(503); }
+  });
+}
 function callable(handler) {
   return onCall(options, async request => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Войдите в аккаунт.");
@@ -188,6 +199,8 @@ exports.deleteAccount = callable(async (uid, data, auth) => {
   return {ok: true};
 });
 async function notify(uid, title, body, deliveryId) {
+  // FCM has no emulator. Never send real notifications from an emulator process.
+  if (process.env.FUNCTIONS_EMULATOR === "true") return;
   if (!uid) return;
   const user = await db.doc(`users/${uid}`).get(); if (!user.exists || user.data().deleting) return;
   const snaps = await db.collection(`users/${uid}/tokens`).get();
