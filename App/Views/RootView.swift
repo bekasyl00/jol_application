@@ -2,8 +2,13 @@ import SwiftUI
 import FirebaseAuth
 
  enum Theme {
-    static let green = Color(red: 0.08, green: 0.37, blue: 0.27)
-    static let background = Color(red: 0.96, green: 0.96, blue: 0.93)
+    static let green = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.38, green: 0.82, blue: 0.64, alpha: 1)
+            : UIColor(red: 0.08, green: 0.37, blue: 0.27, alpha: 1)
+    })
+    static let background = Color(uiColor: .systemGroupedBackground)
+    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
  }
 struct RootView: View {
     @Environment(AppStore.self) private var store
@@ -72,7 +77,7 @@ struct AuthView: View {
                                 else { try await store.login(email: email, password: password) }
                             } }
                         }.buttonStyle(.borderedProminent).controlSize(.large).disabled(store.busy || (registering && !consent))
-                    } else { Text("Firebase ещё не подключён. Проверьте сценарии в локальном деморежиме.").font(.callout).padding().background(.white, in: RoundedRectangle(cornerRadius: 16)) }
+                    } else { Text("Firebase ещё не подключён. Проверьте сценарии в локальном деморежиме.").font(.callout).padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 16)) }
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Попробовать на этом устройстве").font(.headline)
                         HStack { demoButton("Отправитель", .sender); demoButton("Перевозчик", .courier) }
