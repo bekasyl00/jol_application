@@ -69,6 +69,9 @@ def main():
         '--project', 'demo-jol', '--config', str(config_path), '--only', 'auth,firestore,functions,storage']
     env = os.environ.copy()
     env.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
+    # Xcode and the simulator can make first-time module loading exceed the CLI's 10s default.
+    # Otherwise Firebase may report emulators ready while no callable functions were loaded.
+    env.setdefault('FUNCTIONS_DISCOVERY_TIMEOUT', '120')
     if args.test:
         env['JOL_LOCAL_FUNCTIONS_HOST'] = f'{host}:5201'
         command.append('node --test backend/tests/local-http.test.js')
