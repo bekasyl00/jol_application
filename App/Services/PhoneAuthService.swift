@@ -24,7 +24,7 @@ import FirebaseCore
         let normalized = try Self.normalizedPhone(phone)
         #if JOL_LOCAL_SERVER
         do { try await LocalBackend.checkConnection() }
-        catch { throw ParcelError.invalid(LocalBackend.connectionHelp) }
+        catch { throw ParcelError.invalid(LocalBackend.connectionMessage(for: error)) }
         #endif
         // Firebase raises an exception for a missing callback scheme; show a recoverable error first.
         let schemes = (Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] ?? [])

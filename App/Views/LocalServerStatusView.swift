@@ -25,7 +25,7 @@ private struct LocalServerStatusView: View {
                         checking = true
                         Task {
                             do { try await LocalBackend.checkConnection(); status = "Сервер доступен. Можно регистрироваться и создавать заказы." }
-                            catch { status = LocalBackend.configurationError ?? LocalBackend.connectionHelp }
+                            catch { status = LocalBackend.connectionMessage(for: error) }
                             checking = false
                         }
                     }.disabled(checking)
