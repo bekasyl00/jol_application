@@ -298,6 +298,7 @@ struct TripRouteView: View {
 struct SeatPreview: View {
     @State private var occupied = false
     @State private var selected: String?
+    @State private var confirmed = false
 
     var body: some View {
         ScrollView {
@@ -305,7 +306,7 @@ struct SeatPreview: View {
                 Picker("Состояние салона", selection: $occupied) {
                     Text("Все свободны").tag(false)
                     Text("Два заняты").tag(true)
-                }.pickerStyle(.segmented).onChange(of: occupied) { selected = nil }
+                }.pickerStyle(.segmented).onChange(of: occupied) { selected = nil; confirmed = false }
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Алихан   ★ 4,9", systemImage: "person.crop.circle.fill").font(.headline)
                     Text("Toyota Camry · Белая").foregroundStyle(.secondary)
@@ -325,7 +326,19 @@ struct SeatPreview: View {
                     Capsule().fill(.gray).frame(width: 100, height: 5)
                 }.padding(22).frame(maxWidth: 300).background(Color(white: 0.15), in: RoundedRectangle(cornerRadius: 46))
                 .overlay(RoundedRectangle(cornerRadius: 46).strokeBorder(.gray, lineWidth: 5)).frame(maxWidth: .infinity)
-                Text(selected.map { "Выбрано место " + $0 } ?? "Выберите свободное место").font(.headline)
+                if confirmed, let selected {
+                    Label("Место \(selected) выбрано", systemImage: "checkmark.circle.fill")
+                        .font(.headline).foregroundStyle(Theme.green)
+                    Button("Выбрать другое место") { self.selected = nil; confirmed = false }
+                        .buttonStyle(.bordered)
+                } else {
+                    Button {
+                        confirmed = true
+                    } label: {
+                        Text(selected.map { "Подтвердить место " + $0 } ?? "Нажмите на свободное место")
+                            .frame(maxWidth: .infinity)
+                    }.buttonStyle(.borderedProminent).disabled(selected == nil)
+                }
                 Text("Демонстрация салона. Места не бронируются.").font(.footnote).foregroundStyle(.secondary)
             }.padding()
         }.background(Theme.background).navigationTitle("Выбор места").navigationBarTitleDisplayMode(.inline)
@@ -333,7 +346,7 @@ struct SeatPreview: View {
 
     private func seat(_ id: String) -> some View {
         let taken = occupied && ["A1", "B1"].contains(id)
-        return Button { selected = id } label: {
+        return Button { selected = id; confirmed = false } label: {
             VStack(spacing: 4) {
                 Capsule().frame(width: 30, height: 8).opacity(0.25)
                 Text(id).bold()
