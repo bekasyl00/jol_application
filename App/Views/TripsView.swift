@@ -24,6 +24,7 @@ struct TripsView: View {
     var body: some View {
         NavigationStack {
             List {
+                NavigationLink { SeatPreview() } label: { Label("Выбор места · демо", systemImage: "car.side.fill") }
                 if sender {
                     Section("Найти перевозчика") {
                         Picker("Мой заказ", selection: $deliveryId) {
@@ -291,5 +292,57 @@ struct TripRouteView: View {
                 lines.append(route.polyline); elapsed += route.expectedTravelTime
             }
         } catch is CancellationError {} catch { message = error.localizedDescription }
+    }
+}
+
+struct SeatPreview: View {
+    @State private var occupied = false
+    @State private var selected: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Picker("Состояние салона", selection: $occupied) {
+                    Text("Все свободны").tag(false)
+                    Text("Два заняты").tag(true)
+                }.pickerStyle(.segmented).onChange(of: occupied) { selected = nil }
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Алихан   ★ 4,9", systemImage: "person.crop.circle.fill").font(.headline)
+                    Text("Toyota Camry · Белая").foregroundStyle(.secondary)
+                    Divider()
+                    Text("Алматы → Талдыкорган").font(.headline)
+                    Text("Сегодня, 14:30 · 3 500 ₸ / место")
+                }.frame(maxWidth: .infinity, alignment: .leading).padding().background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
+                Text(occupied ? "Свободно 2 места" : "Свободно 4 места").font(.headline).foregroundStyle(Theme.green)
+                VStack(spacing: 16) {
+                    Capsule().fill(.gray).frame(width: 126, height: 9)
+                    HStack {
+                        VStack { Image(systemName: "steeringwheel"); Text("Водитель").font(.caption) }.foregroundStyle(.white)
+                        Spacer()
+                        seat("A1")
+                    }
+                    HStack { seat("B1"); seat("B2"); seat("B3") }
+                    Capsule().fill(.gray).frame(width: 100, height: 5)
+                }.padding(22).frame(maxWidth: 300).background(Color(white: 0.15), in: RoundedRectangle(cornerRadius: 46))
+                .overlay(RoundedRectangle(cornerRadius: 46).strokeBorder(.gray, lineWidth: 5)).frame(maxWidth: .infinity)
+                Text(selected.map { "Выбрано место " + $0 } ?? "Выберите свободное место").font(.headline)
+                Text("Демонстрация салона. Места не бронируются.").font(.footnote).foregroundStyle(.secondary)
+            }.padding()
+        }.background(Theme.background).navigationTitle("Выбор места").navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func seat(_ id: String) -> some View {
+        let taken = occupied && ["A1", "B1"].contains(id)
+        return Button { selected = id } label: {
+            VStack(spacing: 4) {
+                Capsule().frame(width: 30, height: 8).opacity(0.25)
+                Text(id).bold()
+                if taken { Image(systemName: "lock.fill") }
+                else if selected == id { Image(systemName: "checkmark") }
+                else { Text("Свободно").font(.caption2) }
+            }.frame(maxWidth: 76, minHeight: 68).foregroundStyle(.black)
+            .background(taken ? Color(white: 0.73) : Color.mint, in: RoundedRectangle(cornerRadius: 13))
+        }.buttonStyle(.plain).disabled(taken)
+        .accessibilityLabel("\(id), \(taken ? "занято" : selected == id ? "выбрано" : "свободно")")
     }
 }

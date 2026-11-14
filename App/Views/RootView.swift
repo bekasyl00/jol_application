@@ -46,6 +46,7 @@ struct AuthView: View {
                     HStack { Image(systemName: "arrow.up.right.circle.fill").font(.largeTitle); Text("jol").font(.system(size: 44, weight: .bold, design: .rounded)); Text("ПОСЫЛКИ ПО ПУТИ").font(.caption).tracking(2) }.foregroundStyle(Theme.green)
                     Text("Другой город.\nБлиже, чем кажется.").font(.system(size: 36, weight: .bold)).tracking(-1)
                     Text("Отправляйте вещи с теми, кто уже едет. Между городами Казахстана.").foregroundStyle(.secondary)
+                    NavigationLink { SeatPreview() } label: { Label("Выбор места · демо", systemImage: "car.side.fill") }
                     if store.isConfigured {
                         PhoneAuthForm()
                     } else {
